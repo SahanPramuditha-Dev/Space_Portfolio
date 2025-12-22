@@ -1,0 +1,161 @@
+import React, { useEffect, useRef, useMemo, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Text, Float, OrbitControls, Sparkles } from '@react-three/drei';
+import { useTheme } from '../context/ThemeContext';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import SectionWrapper from './SectionWrapper';
+import TiltCard from './TiltCard';
+import Laptop3D from './Laptop3D';
+
+gsap.registerPlugin(ScrollTrigger);
+
+const skillCategories = [
+  {
+    title: "Languages",
+    skills: [
+      { name: "JavaScript (ES6+)", level: 95, proficiency: "Advanced", rationale: "Core of modern web dev" },
+      { name: "Python", level: 80, proficiency: "Proficient", rationale: "Data analysis & scripting" },
+      { name: "HTML5", level: 95, proficiency: "Advanced", rationale: "Semantic markup" },
+      { name: "CSS3", level: 95, proficiency: "Advanced", rationale: "Responsive design" }
+    ]
+  },
+  {
+    title: "Frameworks",
+    skills: [
+      { name: "React", level: 90, proficiency: "Advanced", rationale: "Component architecture" },
+      { name: "Next.js", level: 85, proficiency: "Proficient", rationale: "SSR & Performance" },
+      { name: "Tailwind", level: 95, proficiency: "Advanced", rationale: "Rapid styling" },
+      { name: "Three.js", level: 75, proficiency: "Intermediate", rationale: "3D Visualizations" }
+    ]
+  },
+  {
+    title: "Tools & Backend",
+    skills: [
+      { name: "Node.js", level: 85, proficiency: "Proficient", rationale: "Scalable backend" },
+      { name: "Git", level: 85, proficiency: "Proficient", rationale: "Version control" },
+      { name: "MongoDB", level: 80, proficiency: "Proficient", rationale: "NoSQL Database" },
+      { name: "Figma", level: 75, proficiency: "Intermediate", rationale: "Design to Code" }
+    ]
+  }
+];
+
+const allSkills = skillCategories.flatMap(cat => cat.skills);
+
+const Skills = () => {
+  const sectionRef = useRef(null);
+  const containerRef = useRef(null);
+  const [zoomEnabled, setZoomEnabled] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+        // Always prevent page scroll if interacting with the canvas container
+        // This is more robust than relying on state in the event listener
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    // Add passive: false to allow preventDefault
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, []); // Empty dependency array = attached once
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(".skill-category", {
+        y: 30,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.2,
+        scrollTrigger: {
+          trigger: ".skills-wrapper",
+          start: "top 80%",
+        }
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <SectionWrapper id="skills" className="bg-secondary/30 transition-colors duration-300">
+      <div className="container mx-auto px-6" ref={sectionRef}>
+        <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16">
+          <span className="text-accent font-mono text-xl mr-2">02.</span> Skills & Technologies
+          <span className="h-px bg-secondary flex-grow ml-4 opacity-50"></span>
+        </h2>
+
+        <div className="flex flex-col lg:flex-row gap-16 items-start skills-wrapper">
+          {/* Left Column: Categorized Skills */}
+          <div className="w-full lg:w-3/5 space-y-12">
+            {skillCategories.map((category, idx) => (
+              <div key={idx} className="skill-category">
+                <h3 className="text-xl font-bold text-accent mb-6 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-accent rounded-full"></span>
+                  {category.title}
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {category.skills.map((skill) => (
+                    <TiltCard key={skill.name}>
+                      <div className="group bg-primary/50 p-4 rounded-lg border border-secondary hover:border-accent/50 transition-colors h-full">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-bold text-text">{skill.name}</span>
+                          <span className="text-xs font-mono px-2 py-1 bg-secondary rounded text-accent">
+                            {skill.proficiency}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden mb-2">
+                          <div 
+                            className="h-full bg-accent rounded-full transform origin-left transition-transform duration-1000"
+                            style={{ width: `${skill.level}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-text-muted">{skill.rationale}</p>
+                      </div>
+                    </TiltCard>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Right Column: 3D Laptop */}
+          <div className="w-full lg:w-2/5 h-[300px] lg:h-[600px] sticky top-24">
+             <div 
+                ref={containerRef}
+                className="relative w-full h-full cursor-move bg-secondary/20 rounded-2xl border border-secondary/50 backdrop-blur-sm overflow-hidden"
+                onMouseEnter={() => setZoomEnabled(true)}
+                onMouseLeave={() => setZoomEnabled(false)}
+             >
+               {/* Decorative background gradient */}
+               <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
+               
+               <Canvas camera={{ position: [0, 2, 6], fov: 45 }} dpr={[1, 2]}>
+                 <ambientLight intensity={1.5} />
+                 <pointLight position={[10, 10, 10]} intensity={2} />
+                 <pointLight position={[-10, 5, -10]} intensity={1} color="#0ea5e9" />
+                 
+                 <Laptop3D />
+                 
+                 <Sparkles count={30} scale={8} size={4} speed={0.4} opacity={0.5} color="#0ea5e9" />
+                 <OrbitControls enableZoom={zoomEnabled} autoRotate={!zoomEnabled} autoRotateSpeed={0.5} minPolarAngle={Math.PI/3} maxPolarAngle={Math.PI/2} />
+               </Canvas>
+               
+               <div className="absolute bottom-4 right-4 text-xs text-text-muted font-mono pointer-events-none bg-secondary/80 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
+                 Interactive Workspace
+               </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    </SectionWrapper>
+  );
+};
+
+export default Skills;
