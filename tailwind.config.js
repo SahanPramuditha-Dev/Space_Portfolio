@@ -16,7 +16,7 @@ export default {
         "text-muted": "var(--color-text-muted)",
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['"Space Grotesk"', 'sans-serif'],
         mono: ['"Space Mono"', 'monospace'],
         display: ['Calistoga', 'cursive'],
       },

@@ -1,9 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Github, ExternalLink, Folder, ArrowRight } from 'lucide-react';
 import ProjectModal from './ProjectModal';
 import SectionWrapper from './SectionWrapper';
-import TiltCard from './TiltCard';
 
 const projects = [
   {
@@ -45,41 +44,26 @@ const projects = [
 ];
 
 const ProjectCard = ({ project, index, onOpenModal }) => {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500 + index * 200);
-    return () => clearTimeout(timer);
-  }, [index]);
-
-  if (isLoading) {
-    return (
-      <div className="h-96 glass-card p-8 rounded-lg animate-pulse flex flex-col justify-between">
-        <div className="space-y-4">
-          <div className="w-12 h-12 bg-secondary/50 rounded-lg"></div>
-          <div className="h-6 bg-secondary/50 rounded w-3/4"></div>
-          <div className="h-4 bg-secondary/50 rounded w-full"></div>
-          <div className="h-4 bg-secondary/50 rounded w-5/6"></div>
-        </div>
-        <div className="flex gap-2">
-          <div className="h-6 w-16 bg-secondary/50 rounded-full"></div>
-          <div className="h-6 w-16 bg-secondary/50 rounded-full"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="h-96 w-full cursor-pointer perspective-1000"
+      className="h-96 w-full cursor-pointer perspective-1000 group"
       onClick={() => onOpenModal(project)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenModal(project);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open details for ${project.title}`}
     >
-      <div className="relative w-full h-full group">
-        <div className="w-full h-full relative preserve-3d transition-transform duration-700 group-hover:rotate-y-180">
+      <div className="relative w-full h-full">
+        <div className="w-full h-full relative flip-wrapper preserve-3d">
           {/* Front of Card */}
           <div className="absolute inset-0 backface-hidden">
             <div className="glass-card p-8 rounded-lg flex flex-col justify-between h-full z-20 bg-secondary/80 backdrop-blur-md border border-white/10 shadow-xl">
@@ -108,6 +92,8 @@ const ProjectCard = ({ project, index, onOpenModal }) => {
                     className="text-text-muted hover:text-accent transition-colors z-20 relative" 
                     title="GitHub"
                     onClick={(e) => e.stopPropagation()}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Github size={24} />
                   </a>
@@ -116,6 +102,8 @@ const ProjectCard = ({ project, index, onOpenModal }) => {
                     className="text-text-muted hover:text-accent transition-colors z-20 relative" 
                     title="Live Demo"
                     onClick={(e) => e.stopPropagation()}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <ExternalLink size={24} />
                   </a>
@@ -146,7 +134,7 @@ const Projects = () => {
   return (
     <SectionWrapper id="projects">
       <div className="container mx-auto px-6">
-        <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16 font-display">
+        <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16 font-display gradient-text">
           <span className="text-accent font-mono text-xl mr-2">03.</span> Some Things I've Built
           <span className="h-px bg-secondary flex-grow ml-4 opacity-50"></span>
         </h2>

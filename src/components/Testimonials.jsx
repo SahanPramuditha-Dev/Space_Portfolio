@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Quote, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import SectionWrapper from './SectionWrapper';
 
@@ -33,6 +33,7 @@ const testimonials = [
 const Testimonials = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
+  const prefersReducedMotion = useReducedMotion();
 
   const slideVariants = {
     enter: (direction) => ({
@@ -72,7 +73,7 @@ const Testimonials = () => {
 
       <div className="container mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <h2 className="flex items-center justify-center text-2xl md:text-3xl font-bold text-text mb-4 font-display">
+          <h2 className="flex items-center justify-center text-2xl md:text-3xl font-bold text-text mb-4 font-display gradient-text">
             <span className="text-accent font-mono text-xl mr-2">04.</span> Client Stories
           </h2>
           <p className="text-text-muted max-w-lg mx-auto">
@@ -80,7 +81,15 @@ const Testimonials = () => {
           </p>
         </div>
 
-        <div className="relative max-w-4xl mx-auto h-[500px] flex items-center justify-center perspective-1000">
+        <div
+          className="relative max-w-4xl mx-auto min-h-[420px] flex items-center justify-center perspective-1000"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') paginate(-1);
+            if (e.key === 'ArrowRight') paginate(1);
+          }}
+          aria-label="Testimonials carousel"
+        >
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div
               key={currentIndex}
@@ -94,7 +103,7 @@ const Testimonials = () => {
                 opacity: { duration: 0.2 },
                 scale: { duration: 0.2 }
               }}
-              drag="x"
+              drag={prefersReducedMotion ? false : "x"}
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={1}
               onDragEnd={(e, { offset, velocity }) => {
@@ -126,7 +135,7 @@ const Testimonials = () => {
                           alt={testimonials[currentIndex].name}
                           loading="lazy"
                           decoding="async"
-                          fetchpriority="low"
+                          fetchPriority="low"
                           className="w-full h-full object-cover rounded-full border-2 border-accent/50 relative z-10 shadow-xl"
                         />
                       </div>
@@ -181,6 +190,7 @@ const Testimonials = () => {
                     index === currentIndex ? 'bg-accent w-8' : 'bg-text-muted/30 hover:bg-accent/50 w-2'
                   }`}
                   aria-label={`Go to slide ${index + 1}`}
+                  aria-pressed={index === currentIndex}
                 />
               ))}
             </div>

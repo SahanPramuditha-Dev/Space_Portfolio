@@ -9,20 +9,24 @@ const Preloader = ({ onComplete }) => {
     const interval = 20;
     const steps = duration / interval;
     const increment = 100 / steps;
+    let completeTimeout;
 
     const timer = setInterval(() => {
       setCount((prev) => {
         const next = prev + increment;
         if (next >= 100) {
           clearInterval(timer);
-          setTimeout(onComplete, 500);
+          completeTimeout = setTimeout(onComplete, 500);
           return 100;
         }
         return next;
       });
     }, interval);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (completeTimeout) clearTimeout(completeTimeout);
+    };
   }, [onComplete]);
 
   return (

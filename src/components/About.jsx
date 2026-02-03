@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { Code2, Server, Users } from 'lucide-react';
 import SectionWrapper from './SectionWrapper';
-import About3D from './About3D';
+const About3D = React.lazy(() => import('./About3D'));
 
 const stats = [
   { label: 'Years Experience', value: 3, suffix: '+' },
@@ -15,8 +15,13 @@ const Counter = ({ value, suffix }) => {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
+    if (prefersReducedMotion) {
+      setCount(value);
+      return;
+    }
     if (isInView) {
       let start = 0;
       const end = value;
@@ -35,7 +40,7 @@ const Counter = ({ value, suffix }) => {
 
       return () => clearInterval(timer);
     }
-  }, [isInView, value]);
+  }, [isInView, value, prefersReducedMotion]);
 
   return (
     <span ref={ref} className="font-display font-bold text-4xl text-accent">
@@ -45,8 +50,7 @@ const Counter = ({ value, suffix }) => {
 };
 
 const About = () => {
-  // Placeholder username - change this to your actual GitHub username
-  const GITHUB_USERNAME = "anuraghazra"; 
+  const GITHUB_USERNAME = "sahanpramuditha"; 
 
   return (
     <SectionWrapper id="about">
@@ -59,14 +63,20 @@ const About = () => {
               <div className="absolute inset-0 bg-accent/20 rounded-lg group-hover:bg-transparent transition-colors duration-300 z-10 pointer-events-none"></div>
               {/* 3D Avatar/Shape */}
               <div className="w-full h-full bg-secondary rounded-lg overflow-hidden relative z-0">
-                <About3D />
+                <Suspense
+                  fallback={
+                    <div className="w-full h-full bg-gradient-to-br from-accent/20 via-secondary to-primary" />
+                  }
+                >
+                  <About3D />
+                </Suspense>
               </div>
             </div>
           </div>
 
           {/* Content */}
           <div className="md:w-2/3">
-            <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-8 font-display">
+            <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-8 font-display gradient-text">
               <span className="text-accent font-mono text-xl mr-2">01.</span> About Me
               <span className="h-px bg-secondary flex-grow ml-4 opacity-50"></span>
             </h2>
@@ -94,7 +104,7 @@ const About = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="text-center p-6 bg-secondary/30 rounded-xl hover:bg-secondary/50 transition-colors"
+              className="text-center p-6 bg-secondary/30 rounded-xl border border-secondary/40 hover:bg-secondary/50 transition-colors"
             >
               <Counter value={stat.value} suffix={stat.suffix} />
               <p className="text-text-muted text-sm mt-2 font-mono">{stat.label}</p>
@@ -141,14 +151,20 @@ const About = () => {
              <div className="bg-secondary/20 p-4 rounded-xl border border-secondary/50 flex items-center justify-center hover:border-accent/50 transition-colors">
                 <img 
                   src={`https://github-readme-stats.vercel.app/api?username=${GITHUB_USERNAME}&show_icons=true&theme=transparent&hide_border=true&title_color=38bdf8&text_color=94a3b8&icon_color=38bdf8`} 
-                  alt="GitHub Stats"
+                  alt="GitHub Stats for Sahan Pramuditha"
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
                   className="w-full max-w-md opacity-90 hover:opacity-100 transition-opacity"
                 />
              </div>
              <div className="bg-secondary/20 p-4 rounded-xl border border-secondary/50 flex items-center justify-center hover:border-accent/50 transition-colors">
                 <img 
                   src={`https://github-readme-stats.vercel.app/api/top-langs/?username=${GITHUB_USERNAME}&layout=compact&theme=transparent&hide_border=true&title_color=38bdf8&text_color=94a3b8`} 
-                  alt="Top Languages"
+                  alt="Top Languages for Sahan Pramuditha"
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
                   className="w-full max-w-md opacity-90 hover:opacity-100 transition-opacity"
                 />
              </div>

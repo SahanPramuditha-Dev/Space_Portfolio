@@ -14,7 +14,7 @@ const ThemeToggle = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-full bg-secondary text-accent border border-accent/20 hover:border-accent hover:shadow-[0_0_15px_rgba(var(--color-accent),0.3)] transition-all duration-300"
+        className="p-2 rounded-full bg-secondary text-accent border border-accent/20 hover:border-accent hover:shadow-[0_0_15px_rgb(var(--color-accent-rgb)_/_0.3)] transition-all duration-300"
         aria-label="Change accent color"
       >
         <Palette size={20} />
@@ -25,7 +25,7 @@ const ThemeToggle = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={toggleTheme}
-        className="p-2 rounded-full bg-secondary text-accent border border-accent/20 hover:border-accent hover:shadow-[0_0_15px_rgba(var(--color-accent),0.3)] transition-all duration-300"
+        className="p-2 rounded-full bg-secondary text-accent border border-accent/20 hover:border-accent hover:shadow-[0_0_15px_rgb(var(--color-accent-rgb)_/_0.3)] transition-all duration-300"
         aria-label="Toggle theme"
       >
         {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}

@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Github, ExternalLink, Calendar, Layers, Target, Zap, Award } from 'lucide-react';
+import { X, Github, ExternalLink, Layers, Target, Zap, Award } from 'lucide-react';
 
 const ProjectModal = ({ project, isOpen, onClose }) => {
   if (!project) return null;
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   return (
     <AnimatePresence>
@@ -25,11 +39,16 @@ const ProjectModal = ({ project, isOpen, onClose }) => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-primary border border-secondary w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl pointer-events-auto relative flex flex-col md:flex-row"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="project-modal-title"
+              aria-describedby="project-modal-description"
             >
               {/* Close Button */}
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 p-2 bg-black/50 rounded-full hover:bg-accent hover:text-white transition-colors z-20 backdrop-blur-md"
+                aria-label="Close project details"
               >
                 <X size={24} />
               </button>
@@ -56,8 +75,8 @@ const ProjectModal = ({ project, isOpen, onClose }) => {
                     <span>•</span>
                     <span>2023</span>
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-text mb-4">{project.title}</h2>
-                  <p className="text-text-muted text-lg leading-relaxed">
+                  <h2 id="project-modal-title" className="text-3xl md:text-4xl font-bold text-text mb-4">{project.title}</h2>
+                  <p id="project-modal-description" className="text-text-muted text-lg leading-relaxed">
                     {project.description}
                   </p>
                 </div>

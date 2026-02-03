@@ -1,17 +1,16 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Icosahedron, Octahedron, Box, Torus, MeshDistortMaterial, Environment } from '@react-three/drei';
+import { Float, Icosahedron, Octahedron, Torus, MeshDistortMaterial, Environment } from '@react-three/drei';
 import { useTheme } from '../context/ThemeContext';
 
 const FloatingShape = ({ position, color, speed, rotationIntensity, floatIntensity, Component }) => {
   const ref = useRef();
   
   useFrame((state) => {
+    if (!ref.current) return;
     const t = state.clock.getElapsedTime();
-    if(ref.current) {
-        ref.current.rotation.x = Math.sin(t * speed) * 0.2;
-        ref.current.rotation.y = Math.cos(t * speed) * 0.2;
-    }
+    ref.current.rotation.x = Math.sin(t * speed) * 0.2;
+    ref.current.rotation.y = Math.cos(t * speed) * 0.2;
   });
 
   return (
@@ -67,9 +66,31 @@ const About3DScene = () => {
 };
 
 const About3D = () => {
+  const [enabled, setEnabled] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      const prefersReducedMotion = reduceMotionQuery.matches;
+      const saveData = navigator.connection?.saveData;
+      const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
+      setEnabled(!prefersReducedMotion && !saveData && !lowMemory);
+    };
+    update();
+    reduceMotionQuery.addEventListener('change', update);
+    return () => {
+      reduceMotionQuery.removeEventListener('change', update);
+    };
+  }, []);
+
+  if (!enabled) {
+    return <div className="w-full h-full bg-gradient-to-br from-accent/20 via-secondary to-primary" />;
+  }
+
   return (
     <div className="w-full h-[400px] cursor-pointer">
-      <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0, 5], fov: 50 }} dpr={[1, 1.5]} gl={{ antialias: false, powerPreference: 'low-power' }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <pointLight position={[-10, -10, -10]} intensity={0.5} />

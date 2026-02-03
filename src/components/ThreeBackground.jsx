@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Points, PointMaterial, Float, Icosahedron } from '@react-three/drei';
 import * as random from 'maath/random/dist/maath-random.esm';
@@ -11,17 +11,19 @@ gsap.registerPlugin(ScrollTrigger);
 const FloatingShapes = () => {
   const { theme } = useTheme();
   const color = theme === 'dark' ? "#38bdf8" : "#0284c7";
-  
-  const shapes = useMemo(() => {
-    return Array.from({ length: 15 }).map((_, i) => ({
+  const [shapes, setShapes] = useState([]);
+
+  useEffect(() => {
+    const arr = Array.from({ length: 15 }).map(() => ({
       position: [
         (Math.random() - 0.5) * 10,
         (Math.random() - 0.5) * 10,
-        (Math.random() - 0.5) * 2 // Keep z close to 0 but varied
+        (Math.random() - 0.5) * 2
       ],
       scale: Math.random() * 0.05 + 0.02,
       speed: Math.random() * 2 + 1,
     }));
+    setShapes(arr);
   }, []);
 
   return (
@@ -47,6 +49,7 @@ const Stars = (props) => {
   const { mouse } = useThree();
 
   useFrame((state, delta) => {
+    if (!ref.current) return;
     ref.current.rotation.x -= delta / 10;
     ref.current.rotation.y -= delta / 15;
 
@@ -59,18 +62,22 @@ const Stars = (props) => {
   });
 
   useEffect(() => {
-    if (ref.current) {
-      gsap.to(ref.current.rotation, {
-        y: Math.PI * 2,
-        scrollTrigger: {
-          trigger: "body",
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 1,
-        },
-        ease: "none"
-      });
-    }
+    if (!ref.current) return undefined;
+    const tween = gsap.to(ref.current.rotation, {
+      y: Math.PI * 2,
+      scrollTrigger: {
+        trigger: "body",
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 1,
+      },
+      ease: "none"
+    });
+
+    return () => {
+      tween.scrollTrigger?.kill();
+      tween.kill();
+    };
   }, []);
 
   return (
@@ -90,9 +97,34 @@ const Stars = (props) => {
 };
 
 const ThreeBackground = () => {
+  const [enabled, setEnabled] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      const prefersReducedMotion = reduceMotionQuery.matches;
+      const saveData = navigator.connection?.saveData;
+      const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
+      setEnabled(!prefersReducedMotion && !saveData && !lowMemory);
+    };
+
+    update();
+    reduceMotionQuery.addEventListener('change', update);
+    return () => {
+      reduceMotionQuery.removeEventListener('change', update);
+    };
+  }, []);
+
+  if (!enabled) return null;
+
   return (
     <div className="fixed inset-0 z-0 pointer-events-none">
-      <Canvas camera={{ position: [0, 0, 1] }}>
+      <Canvas
+        camera={{ position: [0, 0, 1] }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: false, powerPreference: 'low-power' }}
+      >
         <Stars />
         <FloatingShapes />
       </Canvas>

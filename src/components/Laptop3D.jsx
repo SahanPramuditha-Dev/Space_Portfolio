@@ -6,10 +6,14 @@ import * as THREE from 'three';
 
 const SatelliteGlobe = () => {
   const meshRef = useRef();
+  const sweepRef = useRef();
   useFrame((state, delta) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += delta * 0.5;
       meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
+    }
+    if (sweepRef.current) {
+      sweepRef.current.rotation.z += delta * 1.2;
     }
   });
   return (
@@ -23,13 +27,18 @@ const SatelliteGlobe = () => {
             <ringGeometry args={[0.6, 0.62, 32]} />
             <meshBasicMaterial color="#ef4444" transparent opacity={0.5} side={THREE.DoubleSide} />
         </mesh>
+        {/* Radar sweep wedge */}
+        <mesh ref={sweepRef} rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.1, 0.62, 32, 1, 0, Math.PI / 5]} />
+            <meshBasicMaterial color="#22d3ee" transparent opacity={0.25} side={THREE.DoubleSide} />
+        </mesh>
     </group>
   );
 };
 
 const Screen = () => {
   const [cursorVisible, setCursorVisible] = useState(true);
-  const [screenState, setScreenState] = useState('initial'); // initial, hacking, dashboard
+  const [screenState, setScreenState] = useState('initial'); // initial, hacking, dashboard, programs
   const [lines, setLines] = useState([
     "> SYSTEM READY...",
     "> SECURE CONNECTION ESTABLISHED",
@@ -46,25 +55,134 @@ const Screen = () => {
   const [inputVal, setInputVal] = useState("");
   const [breachLogs, setBreachLogs] = useState([]);
   const [bypassProgress, setBypassProgress] = useState(0);
+  const [cmdActive, setCmdActive] = useState(false);
+  const [menuIndex, setMenuIndex] = useState(0);
+  const [subMenuIndex, setSubMenuIndex] = useState(0);
+  const [flowLines, setFlowLines] = useState([]);
+  const [flowStage, setFlowStage] = useState('idle');
+  const [inputTarget, setInputTarget] = useState('');
+  const [alertPulse, setAlertPulse] = useState(false);
+  const [activeProgram, setActiveProgram] = useState('TRACKING');
+  const [programLoading, setProgramLoading] = useState(false);
+  const [programNotice, setProgramNotice] = useState('');
+  const [programStatus, setProgramStatus] = useState({
+    TRACKING: 'LIVE',
+    INTRUSION: 'ARMED',
+    WEAPONIZE: 'LOCKED',
+    BLACKOUT: 'READY',
+  });
+  const [programLogs, setProgramLogs] = useState([
+    "> SYSTEM READY",
+    "> PROGRAMS IDLE",
+  ]);
+  const [liveBlink, setLiveBlink] = useState(true);
+  const [waveTick, setWaveTick] = useState(0);
+  const dashboardRef = useRef();
+  const programsRef = useRef();
+  const transitionRef = useRef(0);
+  const transitionTargetRef = useRef(0);
+  const menuItems = ["Target Tracking Operations","Network Intrusion Gateway","Strategic Systems Control","Signal Manipulation","Orbital Weaponization","Blackout & Disruption","Self-Destruction Protocol","Exit Command Interface"];
+  const trackingItems = ["Track Individual","Track Device Signature","Track Signal Origin","Predict Movement Path","Live Telemetry Feed","Return to Main Menu"];
 
-  useFrame((state) => {
-    // Blinking cursor
-    if (Math.floor(state.clock.elapsedTime * 2) % 2 === 0) {
-      setCursorVisible(true);
-    } else {
-      setCursorVisible(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCursorVisible(prev => !prev);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (screenState !== 'dashboard') return undefined;
+    const interval = setInterval(() => {
+      setTelemetry(prev => ({
+        lat: prev.lat + 0.001,
+        lon: prev.lon - 0.001,
+        alt: 405 + Math.sin(Date.now() / 1000) * 0.5,
+        lock: Math.min(prev.lock + 0.5, 100)
+      }));
+    }, 250);
+    return () => clearInterval(interval);
+  }, [screenState]);
+
+  useEffect(() => {
+    if (screenState !== 'dashboard') return undefined;
+    const blink = setInterval(() => setLiveBlink(prev => !prev), 500);
+    const wave = setInterval(() => setWaveTick(prev => prev + 1), 120);
+    return () => {
+      clearInterval(blink);
+      clearInterval(wave);
+    };
+  }, [screenState]);
+
+  useEffect(() => {
+    if (screenState === 'breach' && breachStep === 6) {
+      const interval = setInterval(() => {
+        setAlertPulse(prev => !prev);
+      }, 250);
+      return () => clearInterval(interval);
     }
+    setAlertPulse(false);
+    return undefined;
+  }, [screenState, breachStep]);
 
-    // Update telemetry if in dashboard mode
-    if (screenState === 'dashboard') {
-        setTelemetry(prev => ({
-            lat: prev.lat + 0.001,
-            lon: prev.lon - 0.001,
-            alt: 405 + Math.sin(state.clock.elapsedTime) * 0.5,
-            lock: Math.min(prev.lock + 0.5, 100)
-        }));
+  useFrame((state, delta) => {
+    const target = transitionTargetRef.current;
+    transitionRef.current += (target - transitionRef.current) * Math.min(1, delta * 4);
+    if (dashboardRef.current && programsRef.current) {
+      const t = transitionRef.current;
+      dashboardRef.current.position.x = 0.6 * t;
+      programsRef.current.position.x = -0.6 * (1 - t);
+      dashboardRef.current.scale.setScalar(1 - t * 0.04);
+      programsRef.current.scale.setScalar(0.96 + t * 0.04);
     }
   });
+
+  const launchProgram = (name) => {
+    if (programLoading) return;
+    setProgramLoading(true);
+    setProgramNotice(`Launching ${name}...`);
+    setProgramLogs((prev) => [
+      ...prev.slice(-6),
+      `> ${name} SELECTED`,
+      "> INITIATING SEQUENCE",
+    ]);
+    setTimeout(() => {
+      setActiveProgram(name);
+      setProgramNotice(`${name} online`);
+      setProgramLogs((prev) => [
+        ...prev.slice(-6),
+        `> ${name} ONLINE`,
+      ]);
+      setProgramStatus((prev) => ({
+        ...prev,
+        [name]:
+          name === 'TRACKING'
+            ? 'LIVE'
+            : name === 'INTRUSION'
+              ? 'BREACHING'
+              : name === 'WEAPONIZE'
+                ? 'ARMED'
+                : 'ACTIVE',
+      }));
+      dispatchSceneEvent(name);
+      setProgramLoading(false);
+    }, 900);
+  };
+
+  const dispatchSceneEvent = (name) => {
+    if (name === 'TRACKING') {
+      window.dispatchEvent(new CustomEvent('tracking-cinematic', { detail: { lat: 6.8412, lon: 80.0034 } }));
+    } else if (name === 'INTRUSION') {
+      window.dispatchEvent(new Event('cinematic-clouds-peel'));
+      window.dispatchEvent(new Event('cinematic-night-to-day'));
+    } else if (name === 'WEAPONIZE') {
+      window.dispatchEvent(new Event('satellite-rotate-to-front'));
+      window.dispatchEvent(new Event('satellite-focus'));
+    } else if (name === 'BLACKOUT') {
+      window.dispatchEvent(new Event('blackout-on'));
+      setTimeout(() => window.dispatchEvent(new Event('blackout-off')), 6000);
+    }
+  };
 
   // Breach Sequence Animation
   useEffect(() => {
@@ -146,17 +264,19 @@ const Screen = () => {
                 await delay(1000);
             }
             
-            setBreachLogs(["ACQUIRING VISUAL..."]);
-            // Trigger Navigation / Focus
+            setBreachLogs(["ARMING CORE..."]);
+            await delay(600);
+            setBreachLogs(["LINK STABLE", "ACQUIRING VISUAL..."]);
+            window.dispatchEvent(new Event('satellite-rotate-to-front'));
+            await delay(1200);
             window.dispatchEvent(new Event('satellite-focus'));
-            
-            // Wait for navigation
-            await delay(1500);
+            await delay(1200);
+            window.dispatchEvent(new Event('satellite-zoom'));
+            await delay(2000);
 
-            // Trigger Satellite Explosion
             window.dispatchEvent(new Event('satellite-destruct'));
             
-            setBreachLogs(["*** SIGNAL LOST ***"]);
+            setBreachLogs(["CORE BREACH CONFIRMED", "*** SIGNAL LOST ***"]);
             await delay(2000);
             
             // Reset
@@ -198,7 +318,7 @@ const Screen = () => {
             let progress = "";
             for(let i=0; i<20; i++) {
                 await delay(50);
-                progress += "█";
+                progress += "#";
                 setLines(prev => [...prev.slice(0, -1), `> UPLINKING [${progress.padEnd(20, ' ')}] ${(i+1)*5}%`]);
             }
 
@@ -216,7 +336,104 @@ const Screen = () => {
              setScreenState('breach');
              setBreachStep(0); // Start at selection
       }
+      else if (screenState === 'dashboard' && e.key.toLowerCase() === 'p') {
+             transitionTargetRef.current = 1;
+             setScreenState('programs');
+      }
+      else if (screenState === 'programs' && e.key === 'Escape') {
+             transitionTargetRef.current = 0;
+             setScreenState('dashboard');
+      }
       else if (screenState === 'breach') {
+          if (breachStep === 4) {
+              if (!cmdActive && e.key === 'Enter') {
+                  setCmdActive(true);
+                  setFlowStage('menu');
+                  setFlowLines([
+                    "SATELLITE CONTROL ACQUIRED",
+                    "COMMAND AUTHORITY: LUCIFER",
+                    "MODE: DIRECTIVE SELECTION"
+                  ]);
+                  return;
+              }
+              if (cmdActive) {
+                  if (flowStage === 'menu') {
+                      if (e.key === 'ArrowUp') setMenuIndex(prev => (prev - 1 + menuItems.length) % menuItems.length);
+                      else if (e.key === 'ArrowDown') setMenuIndex(prev => (prev + 1) % menuItems.length);
+                      else if (e.key === 'Enter') {
+                          if (menuIndex === 0) {
+                              setFlowStage('submenu');
+                              setSubMenuIndex(0);
+                              setFlowLines(["> Track Individual","  Track Device Signature","  Track Signal Origin","  Predict Movement Path","  Live Telemetry Feed","  Return to Main Menu"]);
+                          } else if (menuIndex === 6) {
+                              setBreachStep(6);
+                          } else if (menuIndex === 7) {
+                              setCmdActive(false);
+                              setFlowStage('idle');
+                              setFlowLines([]);
+                          } else {
+                              setFlowLines([menuItems[menuIndex].toUpperCase(),"READY"]);
+                          }
+                      }
+                  } else if (flowStage === 'submenu') {
+                      if (e.key === 'ArrowUp') setSubMenuIndex(prev => (prev - 1 + trackingItems.length) % trackingItems.length);
+                      else if (e.key === 'ArrowDown') setSubMenuIndex(prev => (prev + 1) % trackingItems.length);
+                      else if (e.key === 'Enter') {
+                          const item = trackingItems[subMenuIndex];
+                          if (item === "Return to Main Menu") {
+                              setFlowStage('menu');
+                              setFlowLines([
+                                "SATELLITE CONTROL ACQUIRED",
+                                "COMMAND AUTHORITY: LUCIFER",
+                                "MODE: DIRECTIVE SELECTION"
+                              ]);
+                          } else if (item === "Track Individual") {
+                              setFlowStage('track-input');
+                              setInputTarget('');
+                              setFlowLines(["TARGET IDENTIFIER ENTERED:",""]);
+                          } else {
+                              setFlowLines([item.toUpperCase(),"READY"]);
+                          }
+                      }
+                      } else if (flowStage === 'track-input') {
+                          if (e.key === 'Enter') {
+                              const runFlow = async () => {
+                                  const delay = (ms) => new Promise(r => setTimeout(r, ms));
+                                  setFlowLines([`TARGET IDENTIFIER ENTERED:`,`> ${inputTarget || 'UNKNOWN'}`]);
+                                  await delay(600);
+                                  setFlowLines(["ACCESSING: GODS_EYE","GLOBAL OBSERVATION LAYER ONLINE"]);
+                                  await delay(800);
+                                  setFlowLines(["RUNNING FACIAL RECOGNITION ALGORITHMS...","MULTI-SOURCE IMAGE CORRELATION","CONFIDENCE SCORE: 99.8%","FACE IDENTIFIED","BIOMETRIC PROFILE MATCHED"]);
+                                  await delay(1200);
+                                  setFlowLines(["TRACING SIGNAL ORIGIN...","ANALYZING MOVEMENT PATTERNS","RESOLVING GEO-SPATIAL VECTOR"]);
+                                  await delay(1000);
+                                  setFlowLines(["PLANETARY VIEW: EARTH","REGION: SOUTH ASIA","COUNTRY IDENTIFIED: SRI LANKA","METROPOLITAN ZONE: COLOMBO"]);
+                                  await delay(1200);
+                                  setFlowLines(["POINT OF INTEREST IDENTIFIED","RESIDENTIAL COMPLEX DETECTED","","LOCATION TAG:","PITIPANA NORTH","NSBM GREEN UNIVERSITY AREA","","LATITUDE: 6.8412 deg N","LONGITUDE: 80.0034 deg E"]);
+                                  await delay(1500);
+                                  window.dispatchEvent(new CustomEvent('tracking-cinematic', { detail: { target: inputTarget || 'UNKNOWN', lat: 6.8412, lon: 80.0034 } }));
+                                  setFlowStage('submenu');
+                              };
+                              runFlow();
+                          } else if (e.key === 'Backspace') {
+                              setInputTarget(prev => prev.slice(0, -1));
+                          setFlowLines(["TARGET IDENTIFIER ENTERED:",`> ${inputTarget.slice(0, -1)}`]);
+                      } else if (e.key.length === 1) {
+                          const next = (inputTarget + e.key).slice(0, 24);
+                          setInputTarget(next);
+                          setFlowLines(["TARGET IDENTIFIER ENTERED:",`> ${next}`]);
+                      }
+                  } else if (e.key === 'Escape') {
+                      setFlowStage('menu');
+                      setFlowLines([
+                        "SATELLITE CONTROL ACQUIRED",
+                        "COMMAND AUTHORITY: LUCIFER",
+                        "MODE: DIRECTIVE SELECTION"
+                      ]);
+                  }
+              }
+              return;
+          }
           if (breachStep === 0) {
               if (e.key === '3') {
                   setBreachStep(1); // Go to Auth
@@ -246,7 +463,7 @@ const Screen = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [screenState, lines, breachStep, inputVal]);
+  }, [screenState, lines, breachStep, inputVal, cmdActive, flowStage, menuIndex, subMenuIndex, inputTarget]);
 
   const renderBreachScreen = () => {
     switch(breachStep) {
@@ -303,7 +520,7 @@ const Screen = () => {
                       
                       {/* Status Blocks */}
                       <Text position={[-0.8, 0.4, 0]} fontSize={0.06} color="#ef4444" anchorX="left">COMM LAYER: ❌ LOCKED</Text>
-                      <Text position={[-0.8, 0.25, 0]} fontSize={0.06} color="#f59e0b" anchorX="left">COMMAND BUS: ⚠ PARTIAL</Text>
+                      <Text position={[-0.8, 0.25, 0]} fontSize={0.06} color="#f59e0b" anchorX="left">COMMAND BUS: !! PARTIAL</Text>
                       <Text position={[-0.8, 0.1, 0]} fontSize={0.06} color="#ef4444" anchorX="left">FAILSAFE CORE: ❌ ACTIVE</Text>
                       
                       {/* Logs */}
@@ -331,27 +548,52 @@ const Screen = () => {
           case 4: // Success
               return (
                   <group position={[0, 0, 0]}>
-                      <Text position={[0, 0.5, 0]} fontSize={0.15} color="#00ff00" anchorX="center">SATELLITE CONTROL ACQUIRED</Text>
-                      
-                      <Text position={[-0.8, 0.1, 0]} fontSize={0.08} color="#38bdf8" anchorX="left">ATTITUDE CONTROL: ONLINE</Text>
-                      <Text position={[-0.8, -0.1, 0]} fontSize={0.08} color="#38bdf8" anchorX="left">PAYLOAD ACCESS: ENABLED</Text>
-                      <Text position={[-0.8, -0.3, 0]} fontSize={0.08} color="#38bdf8" anchorX="left">TELEMETRY FEED: LIVE</Text>
-                      
-                      <mesh position={[0, -0.6, 0]}>
-                          <planeGeometry args={[1.5, 0.3]} />
-                          <meshBasicMaterial color="#ef4444" />
-                      </mesh>
-                      <Text position={[0, -0.6, 0.01]} fontSize={0.1} color="#ffffff" anchorX="center" anchorY="middle">
-                          ▶ [ENTER] EXECUTE DIRECTIVE
-                      </Text>
-
-                      <mesh position={[0, -0.9, 0]}>
-                          <planeGeometry args={[1.5, 0.2]} />
-                          <meshBasicMaterial color="#1e293b" />
-                      </mesh>
-                      <Text position={[0, -0.9, 0.01]} fontSize={0.08} color="#f59e0b" anchorX="center" anchorY="middle">
-                          ⚠ [DEL] SELF DESTRUCT
-                      </Text>
+                      {!cmdActive ? (
+                        <>
+                          <Text position={[0, 0.5, 0]} fontSize={0.15} color="#00ff00" anchorX="center">SATELLITE CONTROL ACQUIRED</Text>
+                          <Text position={[0, 0.2, 0]} fontSize={0.09} color="#38bdf8" anchorX="center">COMMAND AUTHORITY: LUCIFER</Text>
+                          <Text position={[0, -0.05, 0]} fontSize={0.08} color="#ffffff" anchorX="center">MODE: DIRECTIVE SELECTION</Text>
+                          <mesh position={[0, -0.4, 0]}>
+                              <planeGeometry args={[1.8, 0.3]} />
+                              <meshBasicMaterial color="#ef4444" />
+                          </mesh>
+                          <Text position={[0, -0.4, 0.01]} fontSize={0.1} color="#ffffff" anchorX="center" anchorY="middle">{">> [ENTER] OPEN INTERFACE"}</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text position={[0, 0.6, 0]} fontSize={0.12} color="#38bdf8" anchorX="center">LUCIFER SATELLITE COMMAND SYSTEM</Text>
+                          <group position={[0, 0.2, 0]}>
+                            <Text position={[0, 0.2, 0]} fontSize={0.08} color="#00ff00" anchorX="center">{flowLines[0] || ""}</Text>
+                            <Text position={[0, 0.05, 0]} fontSize={0.06} color="#38bdf8" anchorX="center">{flowLines[1] || ""}</Text>
+                            <Text position={[0, -0.08, 0]} fontSize={0.06} color="#ffffff" anchorX="center">{flowLines[2] || ""}</Text>
+                          </group>
+                          {flowStage === 'menu' && (
+                            <group position={[-0.8, -0.2, 0]}>
+                              {menuItems.map((m, i) => (
+                                <Text key={m} position={[0, -0.12 * i, 0]} fontSize={0.065} color={i === menuIndex ? "#38bdf8" : "#94a3b8"} anchorX="left">
+                                  {(i === menuIndex ? "> " : "  ") + m}
+                                </Text>
+                              ))}
+                            </group>
+                          )}
+                          {flowStage === 'submenu' && (
+                            <group position={[-0.8, -0.2, 0]}>
+                              {trackingItems.map((m, i) => (
+                                <Text key={m} position={[0, -0.12 * i, 0]} fontSize={0.065} color={i === subMenuIndex ? "#38bdf8" : "#94a3b8"} anchorX="left">
+                                  {(i === subMenuIndex ? "> " : "  ") + m}
+                                </Text>
+                              ))}
+                            </group>
+                          )}
+                          {flowStage === 'track-input' && (
+                            <group position={[0, -0.25, 0]}>
+                              <Text position={[0, 0.1, 0]} fontSize={0.07} color="#ffffff" anchorX="center">TARGET IDENTIFIER ENTERED:</Text>
+                              <Text position={[0, -0.05, 0]} fontSize={0.1} color="#38bdf8" anchorX="center">{"> " + inputTarget}</Text>
+                              <Text position={[0, -0.2, 0]} fontSize={0.06} color="#94a3b8" anchorX="center">[ENTER] CONFIRM * [ESC] BACK</Text>
+                            </group>
+                          )}
+                        </>
+                      )}
                   </group>
               );
           case 5: // Execution
@@ -374,10 +616,13 @@ const Screen = () => {
                   <group position={[0, 0, 0]}>
                       <mesh>
                           <planeGeometry args={[2.8, 1.8]} />
-                          <meshBasicMaterial color="#ef4444" />
+                          <meshBasicMaterial color="#ef4444" transparent opacity={alertPulse ? 0.95 : 0.5} />
                       </mesh>
                       <Text position={[0, 0.2, 0.01]} fontSize={0.2} color="#ffffff" anchorX="center">
-                          ⚠ WARNING ⚠
+                          !! WARNING !!
+                      </Text>
+                      <Text position={[0, 0.02, 0.01]} fontSize={0.1} color="#ffffff" anchorX="center">
+                          SELF DESTRUCT SEQUENCE
                       </Text>
                       <Text position={[0, -0.2, 0.01]} fontSize={0.15} color="#000000" anchorX="center">
                           {breachLogs[0] || "INITIATING..."}
@@ -397,13 +642,14 @@ const Screen = () => {
                     return "Press [ENTER] to Launch Dashboard";
                 }
                 return "System Hacking in Progress...";
-           case 'dashboard': return "Press [ENTER] to Initiate Breach";
-           case 'breach':
+          case 'dashboard': return "Press [ENTER] to Initiate Breach | [P] Programs";
+          case 'programs': return "[ESC] Return to Dashboard";
+          case 'breach':
                if (breachStep === 0) return "Select Asset [3] for Classified";
                if (breachStep === 1) return "Hint: Passkey is '1234'";
                if (breachStep === 2) return "Establishing Neural Link...";
                if (breachStep === 3) return "Bypassing Security...";
-               if (breachStep === 4) return "[ENTER] Execute | [DEL] Destruct";
+               if (breachStep === 4) return cmdActive ? "Use Arrow Keys * [ENTER] Select * [ESC] Back" : "[ENTER] Enter LUCIFER Command Interface";
                if (breachStep === 5) return "Mission In Progress...";
                if (breachStep === 6) return "Destruction Imminent...";
                return "";
@@ -443,57 +689,221 @@ const Screen = () => {
                 {screenState === 'initial' && (
                     <mesh position={[0, -1.4, 0]}>
                         <planeGeometry args={[0.08, 0.12]} />
-                        <meshBasicMaterial color="#00ff00" transparent opacity={cursorVisible ? 0.8 : 0} />
+                        <meshBasicMaterial color="#00ff00" transparent opacity={cursorVisible  ? 0.8 : 0} />
                     </mesh>
                 )}
             </>
         ) : screenState === 'dashboard' ? (
-            <group position={[0, 0, 0]}>
+            <group position={[0, 0, 0]} ref={dashboardRef}>
                 {/* Header Bar */}
                 <mesh position={[1.3, 0, 0]}>
                     <planeGeometry args={[2.8, 0.25]} />
                     <meshBasicMaterial color="#1e293b" />
                 </mesh>
                 <Text position={[1.3, 0, 0.01]} fontSize={0.1} color="#ef4444" anchorX="center" anchorY="middle">
-                    ⚠ SATELLITE UPLINK ACTIVE ⚠
+                    !! SATELLITE UPLINK ACTIVE !!
+                </Text>
+                <Text position={[2.35, 0.02, 0.01]} fontSize={0.05} color="#38bdf8" anchorX="right" anchorY="middle">
+                    SECURE TUNNEL: ONLINE
                 </Text>
 
                 {/* Left Column - Globe/Radar */}
                 <group position={[0.7, -0.7, 0]}>
                      <SatelliteGlobe />
-                     <Text position={[0, -0.7, 0]} fontSize={0.06} color="#ef4444" anchorX="center">
-                        TARGET: ORION-7 [LOCKED]
+                     <group position={[0, -0.7, 0]}>
+                        <Text position={[0, 0, 0]} fontSize={0.06} color="#ef4444" anchorX="center">
+                          TARGET: ORION-7 [LOCKED]
+                        </Text>
+                        <Text position={[0.78, 0, 0]} fontSize={0.045} color={liveBlink ? "#22d3ee" : "#0f172a"} anchorX="left">
+                          LIVE FEED
+                        </Text>
+                     </group>
+                     {/* Signal strength meter */}
+                     <mesh position={[0, -0.95, 0]}>
+                        <planeGeometry args={[1.1, 0.12]} />
+                        <meshBasicMaterial color="#0f172a" />
+                     </mesh>
+                     <mesh position={[(-0.55 + (Math.min(100, telemetry.lock) / 100) * 1.1 / 2), -0.95, 0.01]}>
+                        <planeGeometry args={[1.1 * (Math.min(100, telemetry.lock) / 100), 0.12]} />
+                        <meshBasicMaterial color="#22d3ee" transparent opacity={0.6 + Math.sin(waveTick * 0.35) * 0.2} />
+                     </mesh>
+                     <Text position={[0, -1.12, 0]} fontSize={0.045} color="#94a3b8" anchorX="center">
+                        LINK QUALITY
                      </Text>
                 </group>
 
                 {/* Right Column - Telemetry Data */}
                 <group position={[1.9, -0.8, 0]}>
-                    <mesh position={[0, 0.1, 0]}>
-                        <planeGeometry args={[1.3, 1.5]} />
-                        <meshBasicMaterial color="#0f172a" transparent opacity={0.8} />
-                        <meshBasicMaterial color="#38bdf8" wireframe transparent opacity={0.2} />
+                    {/* Orbital Panel */}
+                    <mesh position={[0, 0.55, 0]}>
+                        <planeGeometry args={[1.3, 0.55]} />
+                        <meshBasicMaterial color="#0f172a" transparent opacity={0.85} />
                     </mesh>
+                    <Text position={[-0.55, 0.78, 0.01]} fontSize={0.055} color="#22d3ee" anchorX="left">ORBITAL</Text>
                     <Text
-                        position={[-0.55, 0.7, 0.01]}
-                        fontSize={0.06}
+                        position={[-0.55, 0.63, 0.01]}
+                        fontSize={0.055}
                         color="#38bdf8"
                         anchorX="left"
                         anchorY="top"
                         maxWidth={1.2}
                         lineHeight={1.4}
                     >
-                        {`ORBITAL TELEMETRY
------------------
-LAT:  ${telemetry.lat.toFixed(4)}° N
-LON:  ${telemetry.lon.toFixed(4)}° W
+                        {`LAT:  ${telemetry.lat.toFixed(4)} deg N
+LON:  ${telemetry.lon.toFixed(4)} deg W
 ALT:  ${telemetry.alt.toFixed(1)} km
 VEL:  7,600 m/s
-AZM:  142.5°
-
-SIGNAL: ${Math.floor(85 + Math.sin(Date.now()/1000)*5)}% [-42dBm]
-STATUS: ${telemetry.lock < 100 ? 'DECRYPTING...' : 'VULNERABLE'}
-LOCK:   [${'|'.repeat(Math.floor(telemetry.lock/5)).padEnd(20, '.')}]`}
+AZM:  142.5 deg`}
                     </Text>
+
+                    {/* Signal Panel */}
+                    <mesh position={[0, -0.05, 0]}>
+                        <planeGeometry args={[1.3, 0.45]} />
+                        <meshBasicMaterial color="#0f172a" transparent opacity={0.85} />
+                    </mesh>
+                    <Text position={[-0.55, 0.1, 0.01]} fontSize={0.055} color="#22d3ee" anchorX="left">SIGNAL</Text>
+                    <Text position={[-0.55, -0.02, 0.01]} fontSize={0.055} color="#38bdf8" anchorX="left">
+                      {`STRENGTH: ${Math.floor(85 + Math.sin(Date.now()/1000)*5)}%
+STATUS: ${telemetry.lock < 100 ? 'DECRYPTING...' : 'VULNERABLE'}`}
+                    </Text>
+
+                    {/* Lock Panel */}
+                    <mesh position={[0, -0.62, 0]}>
+                        <planeGeometry args={[1.3, 0.45]} />
+                        <meshBasicMaterial color="#0f172a" transparent opacity={0.85} />
+                    </mesh>
+                    <Text position={[-0.55, -0.47, 0.01]} fontSize={0.055} color="#22d3ee" anchorX="left">TARGET LOCK</Text>
+                    <Text position={[-0.55, -0.6, 0.01]} fontSize={0.055} color="#38bdf8" anchorX="left">
+                      {`LOCK: [${'|'.repeat(Math.floor(telemetry.lock/5)).padEnd(20, '.')}]`}
+                    </Text>
+
+                    {/* Status badges */}
+                    <group position={[0.25, -0.88, 0.01]}>
+                        <mesh position={[-0.4, 0, 0]}>
+                          <planeGeometry args={[0.7, 0.16]} />
+                          <meshBasicMaterial color="#1f2937" />
+                        </mesh>
+                        <Text position={[-0.4, 0, 0.01]} fontSize={0.05} color="#94a3b8" anchorX="center">SYNC</Text>
+                        <mesh position={[0.45, 0, 0]}>
+                          <planeGeometry args={[0.7, 0.16]} />
+                          <meshBasicMaterial color="#0ea5e9" />
+                        </mesh>
+                        <Text position={[0.45, 0, 0.01]} fontSize={0.05} color="#ffffff" anchorX="center">UPLINK</Text>
+                    </group>
+
+                    {/* Waveform */}
+                    <Text
+                        position={[-0.55, -0.18, 0.01]}
+                        fontSize={0.045}
+                        color="#22d3ee"
+                        anchorX="left"
+                        anchorY="top"
+                        maxWidth={1.2}
+                >
+                        {[
+                          ".-==--=---==--.",
+                          "--==---=--==---",
+                          "==--==---=--==.",
+                          "-=---==--=---==",
+                          ".==--=---==--=-",
+                          "--=---==--=---=",
+                          "==---=--==---=-",
+                          "-==--=---==--=-",
+                        ][waveTick % 8]}
+                </Text>
+                </group>
+            </group>
+        ) : screenState === 'programs' ? (
+            <group position={[0, 0, 0]} ref={programsRef}>
+                {/* Header */}
+                <mesh position={[1.3, 0.9, 0]}>
+                    <planeGeometry args={[2.8, 0.25]} />
+                    <meshBasicMaterial color="#0f172a" />
+                </mesh>
+                <Text position={[1.3, 0.9, 0.01]} fontSize={0.09} color="#38bdf8" anchorX="center" anchorY="middle">
+                    LUCIFER PROGRAMS
+                </Text>
+
+                {/* Apps grid */}
+                <mesh position={[0.35, -0.1, 0]}>
+                    <planeGeometry args={[1.4, 1.6]} />
+                    <meshBasicMaterial color="#0b1220" />
+                </mesh>
+                <Text position={[-0.25, 0.55, 0.01]} fontSize={0.07} color="#94a3b8" anchorX="left">APPS</Text>
+                {[
+                  ["TRACKING", "LIVE", "ring"],
+                  ["INTRUSION", programStatus.INTRUSION, "triangle"],
+                  ["WEAPONIZE", programStatus.WEAPONIZE, "diamond"],
+                  ["BLACKOUT", programStatus.BLACKOUT, "square"],
+                ].map((app, i) => {
+                  const active = activeProgram === app[0];
+                  const pulse = 0.6 + Math.sin(waveTick * 0.35) * 0.2;
+                  return (
+                    <group key={app[0]} position={[-0.35 + (i % 2) * 0.62, 0.35 - Math.floor(i / 2) * 0.35, 0.01]}>
+                      <mesh onClick={() => launchProgram(app[0])}>
+                        <planeGeometry args={[0.55, 0.28]} />
+                        <meshBasicMaterial color={active ? "#0ea5e9" : "#111827"} transparent opacity={active ? pulse : 1} />
+                      </mesh>
+                      {app[2] === "ring" && (
+                        <mesh position={[-0.22, 0.01, 0.02]}>
+                          <ringGeometry args={[0.035, 0.055, 24]} />
+                          <meshBasicMaterial color="#22d3ee" transparent opacity={0.9} side={THREE.DoubleSide} />
+                        </mesh>
+                      )}
+                      {app[2] === "triangle" && (
+                        <mesh position={[-0.22, 0.01, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
+                          <coneGeometry args={[0.055, 0.08, 3]} />
+                          <meshBasicMaterial color="#f97316" transparent opacity={0.9} />
+                        </mesh>
+                      )}
+                      {app[2] === "diamond" && (
+                        <mesh position={[-0.22, 0.01, 0.02]} rotation={[0, 0, Math.PI / 4]}>
+                          <boxGeometry args={[0.07, 0.07, 0.01]} />
+                          <meshBasicMaterial color="#ef4444" transparent opacity={0.9} />
+                        </mesh>
+                      )}
+                      {app[2] === "square" && (
+                        <mesh position={[-0.22, 0.01, 0.02]}>
+                          <boxGeometry args={[0.07, 0.07, 0.01]} />
+                          <meshBasicMaterial color="#94a3b8" transparent opacity={0.9} />
+                        </mesh>
+                      )}
+                      <Text position={[-0.22, 0.05, 0.01]} fontSize={0.055} color="#e2e8f0" anchorX="left">{app[0]}</Text>
+                      <Text position={[-0.22, -0.06, 0.01]} fontSize={0.045} color="#94a3b8" anchorX="left">{app[1]}</Text>
+                    </group>
+                  );
+                })}
+
+                {/* Console panel */}
+                <mesh position={[2.05, -0.05, 0]}>
+                    <planeGeometry args={[1.4, 1.6]} />
+                    <meshBasicMaterial color="#0b1220" />
+                </mesh>
+                <Text position={[1.5, 0.55, 0.01]} fontSize={0.07} color="#94a3b8" anchorX="left">CONSOLE</Text>
+                <Text position={[1.5, 0.35, 0.01]} fontSize={0.055} color="#38bdf8" anchorX="left">
+                  {programLogs.slice(-7).join('\n')}
+                </Text>
+                <Text position={[1.5, -0.45, 0.01]} fontSize={0.05} color="#22d3ee" anchorX="left">
+                  {programNotice || `${activeProgram} active`}
+                </Text>
+
+                {/* Actions */}
+                <group position={[1.3, -0.85, 0.01]}>
+                  <mesh position={[-0.6, 0, 0]} onClick={() => setProgramNotice("ALL PROGRAMS PAUSED")}>
+                    <planeGeometry args={[0.75, 0.22]} />
+                    <meshBasicMaterial color="#1f2937" />
+                  </mesh>
+                  <Text position={[-0.6, 0, 0.01]} fontSize={0.055} color="#94a3b8" anchorX="center">PAUSE</Text>
+                  <mesh position={[0.2, 0, 0]} onClick={() => launchProgram('WEAPONIZE')}>
+                    <planeGeometry args={[0.75, 0.22]} />
+                    <meshBasicMaterial color="#ef4444" />
+                  </mesh>
+                  <Text position={[0.2, 0, 0.01]} fontSize={0.055} color="#ffffff" anchorX="center">ARM</Text>
+                  <mesh position={[1.0, 0, 0]} onClick={() => launchProgram('INTRUSION')}>
+                    <planeGeometry args={[0.75, 0.22]} />
+                    <meshBasicMaterial color="#0ea5e9" />
+                  </mesh>
+                  <Text position={[1.0, 0, 0.01]} fontSize={0.055} color="#ffffff" anchorX="center">OVERRIDE</Text>
                 </group>
             </group>
         ) : (
@@ -509,7 +919,7 @@ LOCK:   [${'|'.repeat(Math.floor(telemetry.lock/5)).padEnd(20, '.')}]`}
 const Laptop = (props) => {
   const { theme } = useTheme();
   const lidGroup = useRef();
-  const bodyColor = theme === 'dark' ? '#334155' : '#94a3b8';
+  const bodyColor = theme === 'dark'  ? '#334155' : '#94a3b8';
   
   // Animation state
   const [isOpen, setIsOpen] = useState(false);
@@ -530,7 +940,7 @@ const Laptop = (props) => {
 
   useFrame((state, delta) => {
     if (lidGroup.current) {
-      const targetRotation = isOpen ? -0.25 : Math.PI / 2;
+      const targetRotation = isOpen  ? -0.25 : Math.PI / 2;
       lidGroup.current.rotation.x = THREE.MathUtils.lerp(
         lidGroup.current.rotation.x,
         targetRotation,
@@ -592,12 +1002,18 @@ const Laptop = (props) => {
       </Html>
 
       {/* Base */}
-      <mesh position={[0, -0.1, 0]} material={metalMaterial}>
-        <boxGeometry args={[3.2, 0.2, 2.2]} />
+      <mesh position={[0, -0.08, 0]} material={metalMaterial}>
+        <boxGeometry args={[3.2, 0.14, 2.2]} />
+      </mesh>
+      
+      {/* Edge Highlight */}
+      <mesh position={[0, -0.02, -1.0]}>
+        <boxGeometry args={[3.0, 0.02, 0.02]} />
+        <meshStandardMaterial color="#1e293b" emissive="#38bdf8" emissiveIntensity={0.6} />
       </mesh>
       
       {/* Trackpad */}
-      <mesh position={[0, 0.005, 0.6]} rotation={[-Math.PI / 2, 0, 0]} material={rgbEnabled ? rgbKeyMaterial : trackpadMaterial}>
+      <mesh position={[0, 0.01, 0.6]} rotation={[-Math.PI / 2, 0, 0]} material={rgbEnabled ? rgbKeyMaterial : trackpadMaterial}>
         <planeGeometry args={[1, 0.7]} />
       </mesh>
 
@@ -620,68 +1036,68 @@ const Laptop = (props) => {
       <group position={[0, 0.02, -0.2]}>
          {/* Function Row */}
          {Array.from({ length: 14 }).map((_, i) => (
-            <mesh key={`fr-${i}`} position={[-1.4 + i * 0.215, 0.04, -0.9]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-                <boxGeometry args={[0.18, 0.03, 0.12]} />
+            <mesh key={`fr-${i}`} position={[-1.4 + i * 0.215, 0.02, -0.9]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+                <boxGeometry args={[0.18, 0.02, 0.12]} />
             </mesh>
          ))}
 
          {/* Number Row */}
          {Array.from({ length: 14 }).map((_, i) => (
-            <mesh key={`nr-${i}`} position={[-1.4 + i * 0.215, 0.04, -0.7]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-                <boxGeometry args={[0.18, 0.05, 0.18]} />
+            <mesh key={`nr-${i}`} position={[-1.4 + i * 0.215, 0.02, -0.7]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+                <boxGeometry args={[0.18, 0.035, 0.18]} />
             </mesh>
          ))}
 
          {/* QWERTY Row */}
          {Array.from({ length: 14 }).map((_, i) => (
-            <mesh key={`qr-${i}`} position={[-1.35 + i * 0.215, 0.04, -0.48]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-                <boxGeometry args={[i === 0 ? 0.28 : 0.18, 0.05, 0.18]} />
+            <mesh key={`qr-${i}`} position={[-1.35 + i * 0.215, 0.02, -0.48]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+                <boxGeometry args={[i === 0 ? 0.28 : 0.18, 0.035, 0.18]} />
             </mesh>
          ))}
 
          {/* ASDF Row */}
          {Array.from({ length: 13 }).map((_, i) => (
-            <mesh key={`ar-${i}`} position={[-1.35 + i * 0.215, 0.04, -0.26]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-                <boxGeometry args={[i === 0 ? 0.32 : (i === 12 ? 0.35 : 0.18), 0.05, 0.18]} />
+            <mesh key={`ar-${i}`} position={[-1.35 + i * 0.215, 0.02, -0.26]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+                <boxGeometry args={[i === 0 ? 0.32 : (i === 12 ? 0.35 : 0.18), 0.035, 0.18]} />
             </mesh>
          ))}
 
          {/* ZXCV Row */}
          {Array.from({ length: 12 }).map((_, i) => (
-            <mesh key={`zr-${i}`} position={[-1.25 + i * 0.215, 0.04, -0.04]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-                <boxGeometry args={[i === 0 || i === 11 ? 0.42 : 0.18, 0.05, 0.18]} />
+            <mesh key={`zr-${i}`} position={[-1.25 + i * 0.215, 0.02, -0.04]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+                <boxGeometry args={[i === 0 || i === 11 ? 0.42 : 0.18, 0.035, 0.18]} />
             </mesh>
          ))}
 
          {/* Bottom Row */}
-         <mesh position={[-1.35, 0.04, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.2, 0.05, 0.18]} />
+         <mesh position={[-1.35, 0.02, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.2, 0.035, 0.18]} />
          </mesh>
-         <mesh position={[-1.1, 0.04, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.2, 0.05, 0.18]} />
+         <mesh position={[-1.1, 0.02, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.2, 0.035, 0.18]} />
          </mesh>
-         <mesh position={[-0.85, 0.04, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.25, 0.05, 0.18]} />
+         <mesh position={[-0.85, 0.02, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.25, 0.035, 0.18]} />
          </mesh>
-         <mesh position={[0, 0.04, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[1.2, 0.05, 0.18]} />
+         <mesh position={[0, 0.02, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[1.2, 0.035, 0.18]} />
          </mesh>
-         <mesh position={[0.85, 0.04, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.25, 0.05, 0.18]} />
+         <mesh position={[0.85, 0.02, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.25, 0.035, 0.18]} />
          </mesh>
          
          {/* Arrow Keys */}
-         <mesh position={[1.25, 0.04, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.18, 0.05, 0.08]} />
+         <mesh position={[1.25, 0.02, 0.18]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.18, 0.035, 0.08]} />
          </mesh>
-         <mesh position={[1.25, 0.04, 0.27]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.18, 0.05, 0.08]} />
+         <mesh position={[1.25, 0.02, 0.27]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.18, 0.035, 0.08]} />
          </mesh>
-         <mesh position={[1.05, 0.04, 0.27]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.18, 0.05, 0.08]} />
+         <mesh position={[1.05, 0.02, 0.27]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.18, 0.035, 0.08]} />
          </mesh>
-         <mesh position={[1.45, 0.04, 0.27]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
-             <boxGeometry args={[0.18, 0.05, 0.08]} />
+         <mesh position={[1.45, 0.02, 0.27]} material={rgbEnabled ? rgbKeyMaterial : keyMaterial}>
+             <boxGeometry args={[0.18, 0.035, 0.08]} />
          </mesh>
       </group>
 
@@ -697,18 +1113,24 @@ const Laptop = (props) => {
         <group position={[0, 0, 0]}> 
             {/* Lid Back */}
             <mesh position={[0, 1.1, -0.05]} material={metalMaterial}>
-                <boxGeometry args={[3.2, 2.2, 0.1]} />
+                <boxGeometry args={[3.2, 2.2, 0.055]} />
             </mesh>
             
             {/* Logo */}
             <mesh position={[0, 1.1, -0.101]} rotation={[0, Math.PI, 0]}>
-                <circleGeometry args={[0.15, 32]} />
-                <meshBasicMaterial color="#ffffff" />
+                <circleGeometry args={[0.08, 32]} />
+                <meshStandardMaterial color="#e2e8f0" metalness={0.6} roughness={0.2} />
             </mesh>
 
             {/* Screen Bezel */}
             <mesh position={[0, 1.1, 0.01]} material={screenBezelMaterial}>
-                <boxGeometry args={[3.1, 2.1, 0.05]} />
+                <boxGeometry args={[3.06, 2.06, 0.04]} />
+            </mesh>
+
+            {/* Screen Glass */}
+            <mesh position={[0, 1.1, 0.045]}>
+                <planeGeometry args={[2.84, 1.86]} />
+                <meshStandardMaterial color="#0b1220" transparent opacity={0.35} metalness={0.2} roughness={0.1} />
             </mesh>
             
             {/* Camera */}

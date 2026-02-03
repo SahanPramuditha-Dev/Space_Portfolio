@@ -48,7 +48,7 @@ const ExperienceCard = ({ item, index }) => {
       <div className="hidden md:block w-5/12" />
 
       {/* Timeline Dot */}
-      <div className="absolute left-8 md:left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-secondary border-4 border-accent z-10 flex items-center justify-center shadow-[0_0_20px_rgba(var(--color-accent),0.5)]">
+      <div className="absolute left-8 md:left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-secondary border-4 border-accent z-10 flex items-center justify-center shadow-[0_0_20px_rgb(var(--color-accent-rgb)_/_0.5)]">
         <div className="w-3 h-3 bg-accent rounded-full animate-ping" />
       </div>
 
@@ -114,7 +114,7 @@ const Experience = () => {
     <SectionWrapper id="experience">
       <div className="container mx-auto px-6" ref={ref}>
         <div>
-          <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16 font-display">
+          <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16 font-display gradient-text">
             <span className="text-accent font-mono text-xl mr-2">02.5.</span> Experience & Education
             <span className="h-px bg-secondary flex-grow ml-4 opacity-50"></span>
           </h2>
@@ -126,7 +126,7 @@ const Experience = () => {
             {/* Animated Progress Line */}
             <motion.div 
               style={{ height: lineHeight }}
-              className="absolute left-8 md:left-1/2 top-0 w-1 bg-accent -translate-x-1/2 rounded-full z-0 shadow-[0_0_15px_rgba(var(--color-accent),0.8)]"
+              className="absolute left-8 md:left-1/2 top-0 w-1 bg-accent -translate-x-1/2 rounded-full z-0 shadow-[0_0_15px_rgb(var(--color-accent-rgb)_/_0.8)]"
             />
 
             {experienceData.map((item, index) => (
@@ -140,4 +140,3 @@ const Experience = () => {
 };
 
 export default Experience;
-

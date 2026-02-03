@@ -1,46 +1,28 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { ArrowDown, Github, Linkedin, Mail, FileText } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import gsap from 'gsap';
-import TechAnimation3D from './TechAnimation3D';
-
-const useTypewriter = (text, speed = 50) => {
-  const [displayText, setDisplayText] = useState('');
-  
-  useEffect(() => {
-    let i = 0;
-    const timer = setInterval(() => {
-      if (i < text.length) {
-        setDisplayText((prev) => prev + text.charAt(i));
-        i++;
-      } else {
-        clearInterval(timer);
-      }
-    }, speed);
-    
-    return () => clearInterval(timer);
-  }, [text, speed]);
-  
-  return displayText;
-};
+const TechAnimation3D = React.lazy(() => import('./TechAnimation3D'));
 
 const TypewriterText = ({ words }) => {
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
   const [reverse, setReverse] = useState(false);
   const [blink, setBlink] = useState(true);
+  const prefersReducedMotion = useReducedMotion();
 
   // Blinking cursor
   useEffect(() => {
+    if (prefersReducedMotion) return undefined;
     const timeout2 = setTimeout(() => {
       setBlink((prev) => !prev);
     }, 500);
     return () => clearTimeout(timeout2);
-  }, [blink]);
+  }, [blink, prefersReducedMotion]);
 
   // Typing logic
   useEffect(() => {
+    if (prefersReducedMotion) return undefined;
     if (subIndex === words[index].length + 1 && !reverse) {
       setReverse(true);
       return;
@@ -57,11 +39,11 @@ const TypewriterText = ({ words }) => {
     }, Math.max(reverse ? 75 : subIndex === words[index].length ? 1000 : 150, parseInt(Math.random() * 350)));
 
     return () => clearTimeout(timeout);
-  }, [subIndex, index, reverse, words]);
+  }, [subIndex, index, reverse, words, prefersReducedMotion]);
 
   return (
     <span className="inline-block min-h-[1.2em]">
-      {words[index].substring(0, subIndex)}
+      {prefersReducedMotion ? words[0] : words[index].substring(0, subIndex)}
       <span className={`${blink ? 'opacity-100' : 'opacity-0'} ml-1 text-accent`}>|</span>
     </span>
   );
@@ -69,8 +51,10 @@ const TypewriterText = ({ words }) => {
 
 const Hero = () => {
   const compRef = useRef(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
+    if (prefersReducedMotion) return undefined;
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
@@ -107,7 +91,7 @@ const Hero = () => {
     }, compRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [prefersReducedMotion]);
 
   return (
     <section ref={compRef} id="home" className="min-h-screen flex items-center justify-center relative z-10 overflow-hidden pt-24 md:pt-0">
@@ -175,6 +159,7 @@ const Hero = () => {
               className="p-3 bg-secondary rounded-full text-text-muted hover:text-primary hover:bg-accent transition-all duration-300 transform shadow-md hover:shadow-lg"
               whileHover={{ y: -5, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              aria-label="GitHub profile"
             >
               <Github size={24} />
             </motion.a>
@@ -185,6 +170,7 @@ const Hero = () => {
               className="p-3 bg-secondary rounded-full text-text-muted hover:text-primary hover:bg-accent transition-all duration-300 transform shadow-md hover:shadow-lg"
               whileHover={{ y: -5, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              aria-label="LinkedIn profile"
             >
               <Linkedin size={24} />
             </motion.a>
@@ -193,6 +179,7 @@ const Hero = () => {
               className="p-3 bg-secondary rounded-full text-text-muted hover:text-primary hover:bg-accent transition-all duration-300 transform shadow-md hover:shadow-lg"
               whileHover={{ y: -5, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              aria-label="Email Sahan"
             >
               <Mail size={24} />
             </motion.a>
@@ -231,7 +218,9 @@ const Hero = () => {
           whileInView={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1, delay: 0.5 }}
         >
-           <TechAnimation3D />
+           <Suspense fallback={<div className="w-full h-full rounded-2xl bg-gradient-to-br from-accent/20 via-secondary to-primary" />}>
+             <TechAnimation3D />
+           </Suspense>
         </motion.div>
       </div>
 

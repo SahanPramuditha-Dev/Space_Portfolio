@@ -1,13 +1,13 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sphere, MeshDistortMaterial, OrbitControls, Stars } from '@react-three/drei';
 import { useTheme } from '../context/ThemeContext';
-import * as THREE from 'three';
 
 const PaperPlane = ({ theme }) => {
   const ref = useRef();
   
   useFrame((state) => {
+    if (!ref.current) return;
     const t = state.clock.getElapsedTime();
     // Fly in a figure 8
     ref.current.position.x = Math.cos(t) * 2;
@@ -74,9 +74,31 @@ const AbstractMailbox = () => {
 };
 
 const Contact3D = () => {
+  const [enabled, setEnabled] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      const prefersReducedMotion = reduceMotionQuery.matches;
+      const saveData = navigator.connection?.saveData;
+      const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
+      setEnabled(!prefersReducedMotion && !saveData && !lowMemory);
+    };
+    update();
+    reduceMotionQuery.addEventListener('change', update);
+    return () => {
+      reduceMotionQuery.removeEventListener('change', update);
+    };
+  }, []);
+
+  if (!enabled) {
+    return <div className="w-full h-full min-h-[400px] rounded-2xl bg-gradient-to-br from-accent/20 via-secondary to-primary" />;
+  }
+
   return (
     <div className="w-full h-full min-h-[400px]">
-      <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
+      <Canvas camera={{ position: [0, 0, 6], fov: 45 }} dpr={[1, 1.5]} gl={{ antialias: false, powerPreference: 'low-power' }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 5, 5]} intensity={1} />
         <pointLight position={[-5, -5, -5]} intensity={0.5} color="#38bdf8" />

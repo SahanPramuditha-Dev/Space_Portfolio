@@ -10,6 +10,17 @@ const colors = {
   pink: { accent: '#ec4899', glow: '#f472b6', lightAccent: '#db2777' },
 };
 
+const hexToRgb = (hex) => {
+  if (!hex || typeof hex !== 'string') return null;
+  const normalized = hex.replace('#', '').trim();
+  if (normalized.length !== 6) return null;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+  return `${r} ${g} ${b}`;
+};
+
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -31,6 +42,10 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     const root = window.document.documentElement;
     const selectedColor = colors[accentColor];
+    const accent = theme === 'dark' ? selectedColor.accent : selectedColor.lightAccent;
+    const glow = theme === 'dark' ? selectedColor.glow : selectedColor.accent;
+    const accentRgb = hexToRgb(accent);
+    const glowRgb = hexToRgb(glow);
 
     if (theme === 'dark') {
       root.style.setProperty('--color-accent', selectedColor.accent);
@@ -38,6 +53,13 @@ export const ThemeProvider = ({ children }) => {
     } else {
       root.style.setProperty('--color-accent', selectedColor.lightAccent);
       root.style.setProperty('--color-accent-glow', selectedColor.accent);
+    }
+
+    if (accentRgb) {
+      root.style.setProperty('--color-accent-rgb', accentRgb);
+    }
+    if (glowRgb) {
+      root.style.setProperty('--color-accent-glow-rgb', glowRgb);
     }
     
     localStorage.setItem('accentColor', accentColor);

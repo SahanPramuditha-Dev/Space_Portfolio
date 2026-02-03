@@ -212,7 +212,7 @@ const SnakeGame = ({ isOpen, onClose }) => {
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className={`bg-gray-900 p-6 rounded-2xl shadow-[0_0_50px_rgba(var(--color-accent),0.2)] max-w-lg w-full border border-gray-800 relative overflow-hidden ${shake ? 'animate-shake' : ''}`}
+          className={`bg-gray-900 p-6 rounded-2xl shadow-[0_0_50px_rgb(var(--color-accent-rgb)_/_0.2)] max-w-lg w-full border border-gray-800 relative overflow-hidden ${shake ? 'animate-shake' : ''}`}
           onClick={e => e.stopPropagation()}
         >
           {/* CRT Overlay */}
@@ -270,7 +270,7 @@ const SnakeGame = ({ isOpen, onClose }) => {
                   }}
                 >
                   <div 
-                    className={`w-full h-full rounded-sm ${isHead ? 'bg-accent shadow-[0_0_15px_rgba(var(--color-accent),0.8)] z-10' : 'bg-accent/80 shadow-[0_0_10px_rgba(var(--color-accent),0.4)]'}`}
+                    className={`w-full h-full rounded-sm ${isHead ? 'bg-accent shadow-[0_0_15px_rgb(var(--color-accent-rgb)_/_0.8)] z-10' : 'bg-accent/80 shadow-[0_0_10px_rgb(var(--color-accent-rgb)_/_0.4)]'}`}
                     style={{ transform: 'scale(0.92)' }}
                   >
                     {isHead && (
@@ -335,7 +335,7 @@ const SnakeGame = ({ isOpen, onClose }) => {
                           onClick={() => setDifficulty(d)}
                           className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                             difficulty === d 
-                              ? 'bg-accent text-white shadow-[0_0_15px_rgba(var(--color-accent),0.5)]' 
+                              ? 'bg-accent text-white shadow-[0_0_15px_rgb(var(--color-accent-rgb)_/_0.5)]' 
                               : 'text-gray-400 hover:text-white'
                           }`}
                         >
@@ -345,7 +345,7 @@ const SnakeGame = ({ isOpen, onClose }) => {
                     </div>
                     <button
                       onClick={resetGame}
-                      className="px-8 py-3 bg-accent text-white rounded-full font-bold shadow-[0_0_20px_rgba(var(--color-accent),0.4)] hover:shadow-[0_0_30px_rgba(var(--color-accent),0.6)] hover:scale-105 transition-all flex items-center gap-2"
+                      className="px-8 py-3 bg-accent text-white rounded-full font-bold shadow-[0_0_20px_rgb(var(--color-accent-rgb)_/_0.4)] hover:shadow-[0_0_30px_rgb(var(--color-accent-rgb)_/_0.6)] hover:scale-105 transition-all flex items-center gap-2"
                     >
                       <Play size={20} fill="currentColor" /> Start Game
                     </button>

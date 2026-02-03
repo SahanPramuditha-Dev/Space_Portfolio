@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, Suspense } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Send, CheckCircle, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import SectionWrapper from './SectionWrapper';
-import Contact3D from './Contact3D';
+const Contact3D = React.lazy(() => import('./Contact3D'));
 
 const Contact = () => {
   const [formState, setFormState] = useState('idle'); // idle, submitting, success
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const prefersReducedMotion = useReducedMotion();
 
   const triggerConfetti = () => {
+    if (prefersReducedMotion) return;
     const end = Date.now() + 1000;
 
     const colors = ['#0ea5e9', '#38bdf8'];
@@ -60,8 +62,8 @@ const Contact = () => {
     <SectionWrapper id="contact" className="min-h-[80vh] flex items-center">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-accent font-mono text-lg mb-4">04. What's Next?</h2>
-          <h2 className="text-4xl md:text-5xl font-bold text-text mb-6">Get In Touch</h2>
+          <h2 className="text-accent font-mono text-lg mb-4">05. What's Next?</h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-text mb-6 gradient-text">Get In Touch</h2>
           <p className="text-text-muted text-lg max-w-2xl mx-auto">
             Although I'm not currently looking for any new opportunities, my inbox is always open. Whether you have a question or just want to say hi, I'll try my best to get back to you!
           </p>
@@ -78,6 +80,8 @@ const Contact = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   className="flex flex-col items-center justify-center py-12 text-center"
+                  role="status"
+                  aria-live="polite"
                 >
                   <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 text-green-500">
                     <CheckCircle size={40} />
@@ -100,6 +104,8 @@ const Contact = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onSubmit={handleSubmit}
+                  noValidate
+                  aria-busy={formState === 'submitting'}
                   className="space-y-6"
                 >
                   <div className="relative group">
@@ -109,6 +115,7 @@ const Contact = () => {
                       type="text"
                       name="name"
                       required
+                      autoComplete="name"
                       value={formData.name}
                       onChange={handleChange}
                       className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer"
@@ -126,6 +133,7 @@ const Contact = () => {
                       type="email"
                       name="email"
                       required
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
                       className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer"
@@ -143,6 +151,8 @@ const Contact = () => {
                       name="message"
                       required
                       rows="4"
+                      minLength={10}
+                      autoComplete="off"
                       value={formData.message}
                       onChange={handleChange}
                       className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer resize-none"
@@ -156,6 +166,7 @@ const Contact = () => {
                   <motion.button
                     type="submit"
                     disabled={formState === 'submitting'}
+                    aria-disabled={formState === 'submitting'}
                     className="w-full bg-accent/10 border border-accent text-accent font-bold py-4 rounded-lg hover:bg-accent hover:text-white transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -184,7 +195,9 @@ const Contact = () => {
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <Contact3D />
+            <Suspense fallback={<div className="w-full h-full rounded-2xl bg-gradient-to-br from-accent/20 via-secondary to-primary" />}>
+              <Contact3D />
+            </Suspense>
           </motion.div>
         </div>
       </div>

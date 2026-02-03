@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Text, Float, OrbitControls, Sparkles } from '@react-three/drei';
-import { useTheme } from '../context/ThemeContext';
+import React, { useEffect, useRef, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Sparkles } from '@react-three/drei';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SectionWrapper from './SectionWrapper';
@@ -40,12 +39,27 @@ const skillCategories = [
   }
 ];
 
-const allSkills = skillCategories.flatMap(cat => cat.skills);
-
 const Skills = () => {
   const sectionRef = useRef(null);
   const containerRef = useRef(null);
   const [zoomEnabled, setZoomEnabled] = useState(false);
+  const [threeEnabled, setThreeEnabled] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      const prefersReducedMotion = reduceMotionQuery.matches;
+      const saveData = navigator.connection?.saveData;
+      const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
+      setThreeEnabled(!prefersReducedMotion && !saveData && !lowMemory);
+    };
+    update();
+    reduceMotionQuery.addEventListener('change', update);
+    return () => {
+      reduceMotionQuery.removeEventListener('change', update);
+    };
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -54,6 +68,7 @@ const Skills = () => {
     const handleWheel = (e) => {
         // Always prevent page scroll if interacting with the canvas container
         // This is more robust than relying on state in the event listener
+        if (!threeEnabled) return;
         e.preventDefault();
         e.stopPropagation();
     };
@@ -64,7 +79,7 @@ const Skills = () => {
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, []); // Empty dependency array = attached once
+  }, [threeEnabled]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -86,7 +101,7 @@ const Skills = () => {
   return (
     <SectionWrapper id="skills" className="bg-secondary/30 transition-colors duration-300">
       <div className="container mx-auto px-6" ref={sectionRef}>
-        <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16">
+        <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16 gradient-text">
           <span className="text-accent font-mono text-xl mr-2">02.</span> Skills & Technologies
           <span className="h-px bg-secondary flex-grow ml-4 opacity-50"></span>
         </h2>
@@ -136,16 +151,22 @@ const Skills = () => {
                {/* Decorative background gradient */}
                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
                
-               <Canvas camera={{ position: [0, 2, 6], fov: 45 }} dpr={[1, 2]}>
-                 <ambientLight intensity={1.5} />
-                 <pointLight position={[10, 10, 10]} intensity={2} />
-                 <pointLight position={[-10, 5, -10]} intensity={1} color="#0ea5e9" />
-                 
-                 <Laptop3D />
-                 
-                 <Sparkles count={30} scale={8} size={4} speed={0.4} opacity={0.5} color="#0ea5e9" />
-                 <OrbitControls enableZoom={zoomEnabled} autoRotate={!zoomEnabled} autoRotateSpeed={0.5} minPolarAngle={Math.PI/3} maxPolarAngle={Math.PI/2} />
-               </Canvas>
+               {threeEnabled ? (
+                 <Canvas camera={{ position: [0, 2, 6], fov: 45 }} dpr={[1, 1.5]} gl={{ antialias: false, powerPreference: 'low-power' }}>
+                   <ambientLight intensity={1.5} />
+                   <pointLight position={[10, 10, 10]} intensity={2} />
+                   <pointLight position={[-10, 5, -10]} intensity={1} color="#0ea5e9" />
+                   
+                   <Laptop3D />
+                   
+                   <Sparkles count={30} scale={8} size={4} speed={0.4} opacity={0.5} color="#0ea5e9" />
+                   <OrbitControls enableZoom={zoomEnabled} autoRotate={!zoomEnabled} autoRotateSpeed={0.5} minPolarAngle={Math.PI/3} maxPolarAngle={Math.PI/2} />
+                 </Canvas>
+               ) : (
+                 <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm font-mono">
+                   Interactive preview disabled for performance
+                 </div>
+               )}
                
                <div className="absolute bottom-4 right-4 text-xs text-text-muted font-mono pointer-events-none bg-secondary/80 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
                  Interactive Workspace

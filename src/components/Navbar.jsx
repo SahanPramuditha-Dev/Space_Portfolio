@@ -95,7 +95,7 @@ const Navbar = () => {
     e.preventDefault();
     const element = document.querySelector(href);
     if (element) {
-      const offsetTop = element.offsetTop;
+      const offsetTop = element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
         top: offsetTop,
         behavior: 'smooth'
@@ -112,7 +112,7 @@ const Navbar = () => {
         }`}
       >
         <div className="container mx-auto px-6 flex justify-between items-center">
-          <a href="#" className="text-2xl font-bold text-accent">
+          <a href="#home" onClick={(e) => handleClick(e, '#home')} className="text-2xl font-bold text-accent">
             S<span className="text-text">ahan.</span>
           </a>
 
@@ -123,7 +123,7 @@ const Navbar = () => {
                 key={link.name}
                 href={link.href}
                 onClick={(e) => handleClick(e, link.href)}
-                className={`transition-colors duration-300 relative group font-medium ${
+                className={`transition-colors duration-300 relative group font-medium nav-link ${
                   activeSection === link.id ? 'text-accent' : 'text-text-muted hover:text-accent'
                 }`}
                 whileHover={{ scale: 1.05 }}
@@ -142,7 +142,7 @@ const Navbar = () => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsGameOpen(true)}
-              className="p-2 rounded-full bg-secondary text-accent border border-accent/20 hover:border-accent hover:shadow-[0_0_15px_rgba(var(--color-accent),0.3)] transition-all duration-300"
+              className="p-2 rounded-full bg-secondary text-accent border border-accent/20 hover:border-accent hover:shadow-[0_0_15px_rgb(var(--color-accent-rgb)_/_0.3)] transition-all duration-300"
               aria-label="Play Game"
             >
               <Gamepad2 size={20} />
