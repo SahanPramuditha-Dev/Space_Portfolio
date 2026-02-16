@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose an enhancement for the portfolio.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the problem, then describe the proposed solution.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user or maintainer problem does this solve?
+      placeholder: Visitors cannot quickly scan my latest projects on mobile.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe your preferred implementation.
+      placeholder: Add a compact card mode for projects on small screens.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional alternatives and tradeoffs.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, links, or references.

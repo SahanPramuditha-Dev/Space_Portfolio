@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sparkles } from '@react-three/drei';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SectionWrapper from './SectionWrapper';
 import TiltCard from './TiltCard';
-import Laptop3D from './Laptop3D';
+const ISS3D = React.lazy(() => import('./ISS3D'));
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -44,6 +44,7 @@ const Skills = () => {
   const containerRef = useRef(null);
   const [zoomEnabled, setZoomEnabled] = useState(false);
   const [threeEnabled, setThreeEnabled] = useState(true);
+ 
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -66,11 +67,9 @@ const Skills = () => {
     if (!container) return;
 
     const handleWheel = (e) => {
-        // Always prevent page scroll if interacting with the canvas container
-        // This is more robust than relying on state in the event listener
-        if (!threeEnabled) return;
-        e.preventDefault();
-        e.stopPropagation();
+      if (!threeEnabled) return;
+      e.preventDefault();
+      e.stopPropagation();
     };
 
     // Add passive: false to allow preventDefault
@@ -80,6 +79,8 @@ const Skills = () => {
       container.removeEventListener('wheel', handleWheel);
     };
   }, [threeEnabled]);
+
+ 
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -140,7 +141,7 @@ const Skills = () => {
             ))}
           </div>
 
-          {/* Right Column: 3D Laptop */}
+          {/* Right Column: ISS (Local GLB) */}
           <div className="w-full lg:w-2/5 h-[300px] lg:h-[600px] sticky top-24">
              <div 
                 ref={containerRef}
@@ -150,18 +151,18 @@ const Skills = () => {
              >
                {/* Decorative background gradient */}
                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
-               
+
                {threeEnabled ? (
                  <Canvas
                    shadows
-                   camera={{ position: [0, 2, 6], fov: 45 }}
+                   camera={{ position: [0, 0, 8], fov: 45 }}
                    dpr={[1, 1.5]}
                    gl={{ antialias: false, powerPreference: 'low-power' }}
                  >
-                   <ambientLight intensity={0.6} />
+                   <ambientLight intensity={0.8} />
                    <directionalLight
                      position={[6, 8, 5]}
-                     intensity={1.4}
+                     intensity={1.8}
                      castShadow
                      shadow-mapSize-width={1024}
                      shadow-mapSize-height={1024}
@@ -169,20 +170,37 @@ const Skills = () => {
                    />
                    <pointLight position={[-6, 2, -4]} intensity={0.6} color="#93c5fd" />
                    <pointLight position={[6, 3, 4]} intensity={0.8} />
-                   
-                   <Laptop3D />
-                   
-                   <Sparkles count={30} scale={8} size={4} speed={0.4} opacity={0.5} color="#0ea5e9" />
-                   <OrbitControls enableZoom={zoomEnabled} autoRotate={!zoomEnabled} autoRotateSpeed={0.5} minPolarAngle={Math.PI/3} maxPolarAngle={Math.PI/2} />
+
+                   <Suspense
+                     fallback={
+                       <mesh>
+                         <boxGeometry args={[1, 1, 1]} />
+                         <meshStandardMaterial color="#4a5568" />
+                       </mesh>
+                     }
+                   >
+                     <ISS3D />
+                     <Sparkles count={50} scale={10} size={2} speed={0.3} opacity={0.4} color="#60a5fa" />
+                   </Suspense>
+
+                   <OrbitControls
+                     enableZoom={zoomEnabled}
+                     autoRotate={!zoomEnabled}
+                     autoRotateSpeed={0.5}
+                     minPolarAngle={Math.PI / 6}
+                     maxPolarAngle={Math.PI - Math.PI / 6}
+                     minDistance={3}
+                     maxDistance={15}
+                   />
                  </Canvas>
                ) : (
-                 <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm font-mono">
-                   Interactive preview disabled for performance
+                 <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted text-sm font-mono gap-3 px-6 text-center">
+                   <div>Interactive preview disabled for performance</div>
                  </div>
                )}
                
                <div className="absolute bottom-4 right-4 text-xs text-text-muted font-mono pointer-events-none bg-secondary/80 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
-                 Interactive Workspace
+                 International Space Station (Local)
                </div>
              </div>
           </div>
