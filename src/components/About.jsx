@@ -4,6 +4,7 @@ import { Code2, Server, Users } from 'lucide-react';
 import SectionWrapper from './SectionWrapper';
 const About3D = React.lazy(() => import('./About3D'));
 import GithubStats from './GithubStats';
+import profilePhoto from '../assets/profilephoto.jpeg';
 
 const stats = [
   { label: 'Years Experience', value: 3, suffix: '+' },
@@ -88,15 +89,15 @@ const About = () => {
             <div className="relative w-64 h-64 group">
               <div className="absolute inset-0 border-2 border-accent rounded-lg translate-x-4 translate-y-4 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-300"></div>
               <div className="absolute inset-0 bg-accent/20 rounded-lg group-hover:bg-transparent transition-colors duration-300 z-10 pointer-events-none"></div>
-              {/* 3D Avatar/Shape */}
+              {/* Profile Photo */}
               <div className="w-full h-full bg-secondary rounded-lg overflow-hidden relative z-0">
-                <Suspense
-                  fallback={
-                    <div className="w-full h-full bg-gradient-to-br from-accent/20 via-secondary to-primary" />
-                  }
-                >
-                  <About3D />
-                </Suspense>
+                <img
+                  src={profilePhoto}
+                  alt="Sahan Pramuditha"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>

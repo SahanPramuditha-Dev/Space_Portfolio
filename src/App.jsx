@@ -6,13 +6,18 @@ import About from './components/About';
 import Experience from './components/Experience';
 import Skills from './components/Skills';
 import Projects from './components/Projects';
+import Certifications from './components/Certifications';
 import Testimonials from './components/Testimonials';
+import Blog from './components/Blog';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import ThreeBackground from './components/ThreeBackground';
 import CustomCursor from './components/CustomCursor';
 import Preloader from './components/Preloader';
 import SEO from './components/SEO';
+import StructuredData from './components/StructuredData';
+import SkipToContent from './components/SkipToContent';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
 import ScrollProgress from './components/ScrollProgress';
 import ScrollToTop from './components/ScrollToTop';
 import SmoothScroll from './components/SmoothScroll';
@@ -50,6 +55,9 @@ function App() {
   return (
     <>
       <SEO />
+      <StructuredData />
+      <SkipToContent />
+      <KeyboardShortcuts />
       <ScrollProgress />
       <ScrollToTop />
       <SmoothScroll />
@@ -66,13 +74,15 @@ function App() {
           
           <div className="relative z-10">
             <Navbar />
-            <main>
+            <main id="main-content">
               <Hero />
               <About />
               <Experience />
               <Skills />
               <Projects />
+              <Certifications />
               <Testimonials />
+              <Blog />
               <Contact />
             </main>
             <Footer />

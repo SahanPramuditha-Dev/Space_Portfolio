@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { ArrowDown, Github, Linkedin, Mail, FileText } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import gsap from 'gsap';
+import { trackSocialClick, trackDownload } from '../utils/analytics';
 const TechAnimation3D = React.lazy(() => import('./TechAnimation3D'));
 
 const TypewriterText = ({ words }) => {
@@ -52,6 +53,8 @@ const TypewriterText = ({ words }) => {
 const Hero = () => {
   const compRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
+  const [resumeAvailable, setResumeAvailable] = useState(false);
+  const [resumeUrl, setResumeUrl] = useState(null);
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -92,6 +95,29 @@ const Hero = () => {
 
     return () => ctx.revert();
   }, [prefersReducedMotion]);
+
+  useEffect(() => {
+    const envUrl = import.meta.env.VITE_RESUME_URL;
+    if (envUrl) {
+      setResumeUrl(envUrl);
+      setResumeAvailable(true);
+      return;
+    }
+    let cancelled = false;
+    fetch('/resume.pdf', { method: 'HEAD' })
+      .then((res) => {
+        if (!cancelled && res.ok) {
+          setResumeUrl('/resume.pdf');
+          setResumeAvailable(true);
+        }
+      })
+      .catch(() => {
+        // ignore
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section ref={compRef} id="home" className="min-h-screen flex items-center justify-center relative z-10 overflow-hidden pt-24 md:pt-0">
@@ -156,6 +182,7 @@ const Hero = () => {
               href="https://github.com/SahanPramuditha-Dev"
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackSocialClick('github')}
               className="p-3 bg-secondary rounded-full text-text-muted hover:text-primary hover:bg-accent transition-all duration-300 transform shadow-md hover:shadow-lg"
               whileHover={{ y: -5, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -167,6 +194,7 @@ const Hero = () => {
               href="https://linkedin.com/in/sahanpramuditha"
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackSocialClick('linkedin')}
               className="p-3 bg-secondary rounded-full text-text-muted hover:text-primary hover:bg-accent transition-all duration-300 transform shadow-md hover:shadow-lg"
               whileHover={{ y: -5, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -176,6 +204,7 @@ const Hero = () => {
             </motion.a>
             <motion.a
               href="mailto:contact@sahanpramuditha.com"
+              onClick={() => trackSocialClick('email')}
               className="p-3 bg-secondary rounded-full text-text-muted hover:text-primary hover:bg-accent transition-all duration-300 transform shadow-md hover:shadow-lg"
               whileHover={{ y: -5, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -197,17 +226,20 @@ const Hero = () => {
             >
               Check out my work!
             </motion.a>
-            <motion.a
-              href="/resume.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-8 py-4 bg-accent text-primary font-bold rounded hover:bg-accent/90 transition-colors inline-flex items-center gap-2 font-mono"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <FileText size={20} />
-              Resume
-            </motion.a>
+            {resumeAvailable && (
+              <motion.a
+                href={resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackDownload('resume')}
+                className="px-8 py-4 bg-accent text-primary font-bold rounded hover:bg-accent/90 transition-colors inline-flex items-center gap-2 font-mono"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <FileText size={20} />
+                Resume
+              </motion.a>
+            )}
           </motion.div>
         </motion.div>
 

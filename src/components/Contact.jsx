@@ -1,8 +1,9 @@
 import React, { useState, Suspense } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Send, CheckCircle, Loader2 } from 'lucide-react';
+import { Send, CheckCircle, Loader2, FileText, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import SectionWrapper from './SectionWrapper';
+import { trackContactSubmit, trackDownload } from '../utils/analytics';
 const Contact3D = React.lazy(() => import('./Contact3D'));
 
 const Contact = () => {
@@ -40,7 +41,18 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) return;
+    
+    // Validation
+    if (!formData.name || formData.name.length < 2) {
+      return;
+    }
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return;
+    }
+    if (!formData.message || formData.message.length < 10) {
+      return;
+    }
+    
     setFormState('submitting');
     try {
       const endpoint =
@@ -75,8 +87,10 @@ const Contact = () => {
       setFormState('success');
       setFormData({ name: '', email: '', message: '' });
       triggerConfetti();
+      trackContactSubmit(true);
     } catch (err) {
       setFormState('idle');
+      trackContactSubmit(false);
     }
   };
 
@@ -95,9 +109,23 @@ const Contact = () => {
         <div className="text-center mb-12 md:mb-16">
           <h2 className="text-accent font-mono text-lg mb-4">05. What's Next?</h2>
           <h2 className="text-4xl md:text-5xl font-bold text-text mb-6 gradient-text">Get In Touch</h2>
-          <p className="text-text-muted text-lg max-w-2xl mx-auto">
+          <p className="text-text-muted text-lg max-w-2xl mx-auto mb-6">
             Although I'm not currently looking for any new opportunities, my inbox is always open. Whether you have a question or just want to say hi, I'll try my best to get back to you!
           </p>
+          {/* Resume Download Link */}
+          <motion.a
+            href="/resume.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            onClick={() => trackDownload('resume')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-accent/10 border border-accent text-accent rounded-lg hover:bg-accent hover:text-primary transition-all duration-300 font-mono text-sm"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Download size={18} />
+            Download Resume
+          </motion.a>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -146,15 +174,24 @@ const Contact = () => {
                       type="text"
                       name="name"
                       required
+                      minLength={2}
+                      maxLength={100}
                       autoComplete="name"
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer placeholder:text-white"
+                      className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer placeholder:text-white invalid:border-red-500/50"
                       placeholder=" "
+                      aria-describedby="name-error"
+                      aria-invalid={formData.name && formData.name.length < 2}
                     />
                     <label className="absolute left-4 top-3 text-white transition-all duration-300 pointer-events-none peer-focus:-top-6 peer-focus:text-xs peer-focus:text-accent peer-[:not(:placeholder-shown)]:-top-6 peer-[:not(:placeholder-shown)]:text-xs">
-                      Your Name
+                      Your Name <span className="text-red-400">*</span>
                     </label>
+                    {formData.name && formData.name.length < 2 && (
+                      <p id="name-error" className="text-xs text-red-400 mt-1 ml-4" role="alert">
+                        Name must be at least 2 characters
+                      </p>
+                    )}
                   </div>
 
                   <div className="relative group">
@@ -167,12 +204,19 @@ const Contact = () => {
                       autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer placeholder:text-white"
+                      className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer placeholder:text-white invalid:border-red-500/50"
                       placeholder=" "
+                      aria-describedby="email-error"
+                      aria-invalid={formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)}
                     />
                     <label className="absolute left-4 top-3 text-white transition-all duration-300 pointer-events-none peer-focus:-top-6 peer-focus:text-xs peer-focus:text-accent peer-[:not(:placeholder-shown)]:-top-6 peer-[:not(:placeholder-shown)]:text-xs">
-                      Your Email
+                      Your Email <span className="text-red-400">*</span>
                     </label>
+                    {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+                      <p id="email-error" className="text-xs text-red-400 mt-1 ml-4" role="alert">
+                        Please enter a valid email address
+                      </p>
+                    )}
                   </div>
 
                   <div className="relative group">
@@ -183,15 +227,28 @@ const Contact = () => {
                       required
                       rows="4"
                       minLength={10}
+                      maxLength={1000}
                       autoComplete="off"
                       value={formData.message}
                       onChange={handleChange}
-                      className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer resize-none placeholder:text-white"
+                      className="w-full bg-primary/50 border border-secondary rounded-lg px-4 py-3 text-text outline-none focus:border-accent transition-colors peer resize-none placeholder:text-white invalid:border-red-500/50"
                       placeholder=" "
+                      aria-describedby="message-error"
+                      aria-invalid={formData.message && formData.message.length < 10}
                     ></motion.textarea>
                     <label className="absolute left-4 top-3 text-white transition-all duration-300 pointer-events-none peer-focus:-top-6 peer-focus:text-xs peer-focus:text-accent peer-[:not(:placeholder-shown)]:-top-6 peer-[:not(:placeholder-shown)]:text-xs">
-                      Message
+                      Message <span className="text-red-400">*</span>
                     </label>
+                    {formData.message && formData.message.length < 10 && (
+                      <p id="message-error" className="text-xs text-red-400 mt-1 ml-4" role="alert">
+                        Message must be at least 10 characters ({formData.message.length}/10)
+                      </p>
+                    )}
+                    {formData.message && formData.message.length >= 10 && (
+                      <p className="text-xs text-text-muted mt-1 ml-4">
+                        {formData.message.length}/1000 characters
+                      </p>
+                    )}
                   </div>
 
                   <motion.button

@@ -3,14 +3,18 @@ import { motion } from 'framer-motion';
 import { Github, ExternalLink, Folder, ArrowRight } from 'lucide-react';
 import ProjectModal from './ProjectModal';
 import SectionWrapper from './SectionWrapper';
+import { trackProjectView } from '../utils/analytics';
 
 const projects = [
   {
     title: 'E-Commerce Platform',
     description: 'A full-stack e-commerce platform built with Next.js, Stripe, and Sanity CMS. Features real-time inventory management, secure payments, and a custom admin dashboard.',
     tech: ['Next.js', 'Stripe', 'Sanity CMS', 'Tailwind'],
+    category: 'Full-Stack',
     github: 'https://github.com',
     external: 'https://demo.com',
+    thumbnail: null, // Add image path here when available, e.g., '/images/ecommerce-thumb.jpg'
+    screenshots: [], // Add array of screenshot paths when available
     problem: 'Client needed a scalable, custom e-commerce solution that could handle complex product variants and real-time stock updates, which Shopify plugins were struggling to manage effectively.',
     solution: 'Architected a headless commerce solution using Next.js for the frontend and Sanity for flexible content management. Integrated Stripe for secure payment processing and webhooks for real-time order updates.',
     role: 'Full-Stack Developer',
@@ -21,8 +25,11 @@ const projects = [
     title: 'Data Visualization Dashboard',
     description: 'An interactive analytics dashboard for visualizing complex datasets using React and D3.js. Enables users to filter, sort, and export data in real-time.',
     tech: ['React', 'D3.js', 'Firebase', 'Material UI'],
+    category: 'Frontend',
     github: 'https://github.com',
     external: 'https://demo.com',
+    thumbnail: null,
+    screenshots: [],
     problem: 'Users were overwhelmed by raw CSV data and struggled to extract actionable insights quickly.',
     solution: 'Developed a client-side dashboard that parses and visualizes data instantly. Implemented cross-filtering to allow users to explore relationships between different data points.',
     role: 'Frontend Engineer',
@@ -33,8 +40,11 @@ const projects = [
     title: 'AI Content Generator',
     description: 'A SaaS application that uses OpenAI API to help marketers generate blog posts and social media captions. Includes a rich text editor and SEO optimization tools.',
     tech: ['React', 'Node.js', 'OpenAI API', 'MongoDB'],
+    category: 'Full-Stack',
     github: 'https://github.com',
     external: 'https://demo.com',
+    thumbnail: null,
+    screenshots: [],
     problem: 'Marketing teams were spending too much time on first drafts and facing writer\'s block.',
     solution: 'Built a streamlined interface wrapping GPT-4 to generate structured content based on minimal prompts. Added a custom editor to refine and format the output.',
     role: 'Lead Developer',
@@ -42,6 +52,8 @@ const projects = [
     outcomes: 'Adoption by 500+ users in the first month and generated over 10,000 articles.'
   },
 ];
+
+const categories = ['All', ...new Set(projects.map(p => p.category))];
 
 const ProjectCard = ({ project, index, onOpenModal }) => {
   return (
@@ -51,10 +63,14 @@ const ProjectCard = ({ project, index, onOpenModal }) => {
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       className="h-96 w-full cursor-pointer perspective-1000 group"
-      onClick={() => onOpenModal(project)}
+      onClick={() => {
+        trackProjectView(project.title);
+        onOpenModal(project);
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          trackProjectView(project.title);
           onOpenModal(project);
         }
       }}
@@ -66,17 +82,36 @@ const ProjectCard = ({ project, index, onOpenModal }) => {
         <div className="w-full h-full relative flip-wrapper preserve-3d">
           {/* Front of Card */}
           <div className="absolute inset-0 backface-hidden">
-            <div className="glass-card p-8 rounded-lg flex flex-col justify-between h-full z-20 bg-secondary/80 backdrop-blur-md border border-white/10 shadow-xl">
-              <div>
+            <div className="glass-card p-8 rounded-lg flex flex-col justify-between h-full z-20 bg-secondary/80 backdrop-blur-md border border-white/10 shadow-xl overflow-hidden">
+              {/* Thumbnail Image */}
+              {project.thumbnail ? (
+                <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
+                  <img 
+                    src={project.thumbnail} 
+                    alt={project.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-primary/20 opacity-50"></div>
+              )}
+              
+              <div className="relative z-10">
                 <div className="flex justify-between items-center mb-6">
                   <Folder size={40} className="text-accent" />
+                  {project.category && (
+                    <span className="px-2 py-1 bg-accent/20 text-accent text-xs font-mono rounded border border-accent/30">
+                      {project.category}
+                    </span>
+                  )}
                 </div>
                 <h3 className="text-2xl font-bold text-text mb-2">{project.title}</h3>
                 <p className="text-text-muted line-clamp-3">
                   {project.description}
                 </p>
               </div>
-              <div className="text-accent flex items-center gap-2 text-sm font-mono">
+              <div className="text-accent flex items-center gap-2 text-sm font-mono relative z-10">
                 Click for details <ArrowRight size={16} />
               </div>
             </div>
@@ -130,25 +165,62 @@ const ProjectCard = ({ project, index, onOpenModal }) => {
 
 const Projects = () => {
   const [selectedProject, setSelectedProject] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  const filteredProjects = activeCategory === 'All' 
+    ? projects 
+    : projects.filter(p => p.category === activeCategory);
 
   return (
     <SectionWrapper id="projects">
       <div className="container mx-auto px-6">
-        <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-12 md:mb-16 font-display gradient-text">
+        <h2 className="flex items-center text-2xl md:text-3xl font-bold text-text mb-8 md:mb-12 font-display gradient-text">
           <span className="text-accent font-mono text-xl mr-2">03.</span> Some Things I've Built
           <span className="h-px bg-secondary flex-grow ml-4 opacity-50"></span>
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects.map((project, index) => (
-            <ProjectCard 
-              key={index} 
-              project={project} 
-              index={index} 
-              onOpenModal={setSelectedProject}
-            />
+        {/* Filter Buttons */}
+        <div className="flex flex-wrap gap-3 mb-12 justify-center md:justify-start">
+          {categories.map((category) => (
+            <motion.button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`px-4 py-2 rounded-lg font-mono text-sm transition-all duration-300 ${
+                activeCategory === category
+                  ? 'bg-accent text-primary font-bold shadow-lg shadow-accent/30'
+                  : 'bg-secondary/50 text-text-muted hover:bg-secondary hover:text-text border border-secondary/50'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              aria-label={`Filter projects by ${category}`}
+            >
+              {category}
+            </motion.button>
           ))}
         </div>
+
+        {filteredProjects.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-text-muted text-lg">No projects found in this category.</p>
+          </div>
+        ) : (
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            key={activeCategory}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {filteredProjects.map((project, index) => (
+              <ProjectCard 
+                key={`${project.title}-${index}`} 
+                project={project} 
+                index={index} 
+                onOpenModal={setSelectedProject}
+              />
+            ))}
+          </motion.div>
+        )}
       </div>
 
       <ProjectModal 

@@ -54,17 +54,39 @@ const ProjectModal = ({ project, isOpen, onClose }) => {
               </button>
 
               {/* Image / Visual Side */}
-              <div className="w-full md:w-5/12 bg-secondary/30 relative flex flex-col">
-                <div className="h-64 md:h-full w-full bg-gradient-to-br from-accent/10 to-primary flex items-center justify-center p-8 relative overflow-hidden">
-                   {/* Abstract Pattern */}
-                   <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }}></div>
-                   
-                   <div className="z-10 text-center">
-                     <Layers size={64} className="text-accent mx-auto mb-4 opacity-50" />
-                     <h3 className="text-2xl font-bold text-text mb-2">{project.title}</h3>
-                     <p className="text-text-muted font-mono text-sm">{project.role}</p>
-                   </div>
-                </div>
+              <div className="w-full md:w-5/12 bg-secondary/30 relative flex flex-col overflow-hidden">
+                {project.thumbnail || (project.screenshots && project.screenshots.length > 0) ? (
+                  <div className="h-full w-full relative">
+                    <img 
+                      src={project.thumbnail || project.screenshots[0]} 
+                      alt={project.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                      <h3 className="text-2xl font-bold text-text mb-2">{project.title}</h3>
+                      <p className="text-text-muted font-mono text-sm">{project.role}</p>
+                    </div>
+                    {/* Screenshot Gallery Indicator */}
+                    {project.screenshots && project.screenshots.length > 1 && (
+                      <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-mono">
+                        {project.screenshots.length} screenshots
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-64 md:h-full w-full bg-gradient-to-br from-accent/10 to-primary flex items-center justify-center p-8 relative overflow-hidden">
+                    {/* Abstract Pattern */}
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }}></div>
+                    
+                    <div className="z-10 text-center">
+                      <Layers size={64} className="text-accent mx-auto mb-4 opacity-50" />
+                      <h3 className="text-2xl font-bold text-text mb-2">{project.title}</h3>
+                      <p className="text-text-muted font-mono text-sm">{project.role}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Details Side */}

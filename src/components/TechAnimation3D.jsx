@@ -3,6 +3,7 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Float, Sphere, Stars, Trail, OrbitControls, Icosahedron } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { getPerformanceConfig, earthConfig } from '../config/earthConfig';
 
 const AtmosphereShaderMaterial = {
   uniforms: {
@@ -325,7 +326,7 @@ const StarWarp = ({ count = 2000, paused = false, dim = 0 }) => {
     );
 };
 
-const EarthSystem = ({ explode, onExplosionComplete, focused, cinematic, destructing, blackout }) => {
+const EarthSystem = ({ explode, onExplosionComplete, focused, cinematic, destructing, blackout, config: customConfig }) => {
   const earthRef = useRef();
   const earthWireframeRef = useRef();
   const earthShadowRef = useRef();
@@ -340,6 +341,9 @@ const EarthSystem = ({ explode, onExplosionComplete, focused, cinematic, destruc
   const particleRef = useRef();
   const flashLightRef = useRef();
   const flashRef = useRef(0);
+
+  // Use custom config or fallback to performance-optimized default
+  const config = customConfig || getPerformanceConfig();
 
   // Load Earth Textures
   const [colorMap, normalMap, specularMap, cloudsMap, emissiveMap] = useLoader(THREE.TextureLoader, [
@@ -358,19 +362,19 @@ const EarthSystem = ({ explode, onExplosionComplete, focused, cinematic, destruc
   useFrame((state, delta) => {
     // ... (Earth & Moon rotation - keep them moving)
     if (earthRef.current && !focused) {
-      earthRef.current.rotation.y += delta * 0.05;
+      earthRef.current.rotation.y += delta * config.earth.rotationSpeed;
     }
     if (earthWireframeRef.current && !focused) {
-        earthWireframeRef.current.rotation.y += delta * 0.07;
+        earthWireframeRef.current.rotation.y += delta * config.clouds.rotationSpeed;
     }
     if (earthShadowRef.current && !focused) {
-        earthShadowRef.current.rotation.y += delta * 0.09;
+        earthShadowRef.current.rotation.y += delta * config.cloudShadows.rotationSpeed || config.clouds.rotationSpeed * 1.3;
     }
-    if (moonGroupRef.current && !focused) {
-        moonGroupRef.current.rotation.y += delta * 0.1;
+    if (moonGroupRef.current && !focused && config.moon.enabled) {
+        moonGroupRef.current.rotation.y += delta * config.moon.orbitSpeed;
     }
-    if (moonRef.current) {
-        moonRef.current.rotation.y += delta * 0.02;
+    if (moonRef.current && config.moon.enabled) {
+        moonRef.current.rotation.y += delta * config.moon.rotationSpeed;
     }
 
     // Tech Ring Rotation - Pause if focused
@@ -388,20 +392,22 @@ const EarthSystem = ({ explode, onExplosionComplete, focused, cinematic, destruc
         innerRingRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.25) * 0.15;
     }
 
-    if (auroraRef.current && !focused) {
-      auroraRef.current.rotation.y += delta * 0.04;
-      const base = cinematic || destructing ? 0.2 : 0.12;
-      auroraRef.current.material.opacity = base + Math.sin(state.clock.elapsedTime * 1.2) * 0.05;
+    if (auroraRef.current && !focused && config.aurora.enabled) {
+      const auroraBand = config.aurora.bands[0];
+      auroraRef.current.rotation.y += delta * auroraBand.rotationSpeed;
+      const base = cinematic || destructing ? auroraBand.opacity.cinematic : auroraBand.opacity.base;
+      auroraRef.current.material.opacity = base + Math.sin(state.clock.elapsedTime * auroraBand.opacity.pulseSpeed) * auroraBand.opacity.pulse;
     }
-    if (auroraRef2.current && !focused) {
-      auroraRef2.current.rotation.y -= delta * 0.03;
-      const base = cinematic || destructing ? 0.14 : 0.08;
-      auroraRef2.current.material.opacity = base + Math.cos(state.clock.elapsedTime * 1.1) * 0.04;
+    if (auroraRef2.current && !focused && config.aurora.enabled) {
+      const auroraBand = config.aurora.bands[1];
+      auroraRef2.current.rotation.y += delta * auroraBand.rotationSpeed;
+      const base = cinematic || destructing ? auroraBand.opacity.cinematic : auroraBand.opacity.base;
+      auroraRef2.current.material.opacity = base + Math.cos(state.clock.elapsedTime * auroraBand.opacity.pulseSpeed) * auroraBand.opacity.pulse;
     }
 
     if (particleRef.current && !focused) {
-      particleRef.current.rotation.y += delta * 0.03;
-      particleRef.current.rotation.x -= delta * 0.015;
+      particleRef.current.rotation.y += delta * config.particles.rotationSpeed.y;
+      particleRef.current.rotation.x += delta * config.particles.rotationSpeed.x;
     }
 
     const baseDir = scene.userData?.lightDir || new THREE.Vector3(1, 0, 0);
@@ -419,25 +425,25 @@ const EarthSystem = ({ explode, onExplosionComplete, focused, cinematic, destruc
   useEffect(() => {
     if (!earthRef.current || !earthRef.current.material) return;
     gsap.to(earthRef.current.material, {
-      emissiveIntensity: blackout ? 0.4 : 2.4,
-      duration: 1.2,
+      emissiveIntensity: blackout ? config.blackout.earthEmissiveIntensity : config.earth.material.emissiveIntensity,
+      duration: config.blackout.transitionDuration,
       ease: 'power2.out'
     });
     if (earthWireframeRef.current && earthWireframeRef.current.material) {
       gsap.to(earthWireframeRef.current.material, {
-        opacity: blackout ? 0.4 : 0.85,
-        duration: 1.2,
+        opacity: blackout ? config.blackout.cloudOpacity : config.clouds.opacity,
+        duration: config.blackout.transitionDuration,
         ease: 'power2.out'
       });
     }
     if (particleRef.current && particleRef.current.material) {
       gsap.to(particleRef.current.material, {
-        opacity: blackout ? 0.08 : 0.25,
-        duration: 1.2,
+        opacity: blackout ? config.blackout.particleOpacity : config.particles.opacity,
+        duration: config.blackout.transitionDuration,
         ease: 'power2.out'
       });
     }
-  }, [blackout]);
+  }, [blackout, config]);
 
   useEffect(() => {
     const peel = () => {
@@ -464,99 +470,135 @@ const EarthSystem = ({ explode, onExplosionComplete, focused, cinematic, destruc
     };
   }, []);
 
+  // Update shader uniforms with config values
+  const atmosphereShader = useMemo(() => ({
+    ...AtmosphereShaderMaterial,
+    uniforms: {
+      ...AtmosphereShaderMaterial.uniforms,
+      color: { value: new THREE.Color(config.atmosphere.color) },
+      coef: { value: config.atmosphere.coef },
+      power: { value: config.atmosphere.power },
+    },
+  }), [config]);
+
+  const terminatorShader = useMemo(() => ({
+    ...TerminatorShaderMaterial,
+    uniforms: {
+      ...TerminatorShaderMaterial.uniforms,
+      darkness: { value: config.terminator.darkness },
+    },
+  }), [config]);
+
   return (
-    <group scale={1.2} rotation={[0.41, 0, 0]}>
+    <group scale={config.earth.scale} rotation={config.earth.initialRotation}>
       {/* --- Earth --- */}
-      <Float speed={1} rotationIntensity={0.1} floatIntensity={0.2}>
+      <Float 
+        speed={config.earth.float.speed} 
+        rotationIntensity={config.earth.float.rotationIntensity} 
+        floatIntensity={config.earth.float.floatIntensity}
+        enabled={config.earth.float.enabled}
+      >
         <group>
             {/* Base Earth Sphere */}
-            <Sphere ref={earthRef} args={[1.65, 64, 64]} position={[0, 0, 0]}>
+            <Sphere ref={earthRef} args={[config.earth.radius, config.earth.widthSegments, config.earth.heightSegments]} position={[0, 0, 0]}>
                 <meshPhongMaterial 
                     map={colorMap}
                     normalMap={normalMap}
-                    normalScale={[2, 2]} // Enhanced normal effect
+                    normalScale={config.earth.material.normalScale}
                     specularMap={specularMap}
-                    shininess={15}
+                    shininess={config.earth.material.shininess}
                     emissiveMap={emissiveMap}
-                    emissive="#ffcc88"
-                    emissiveIntensity={2.4}
-                    specular="#22d3ee"
+                    emissive={config.earth.material.emissiveColor}
+                    emissiveIntensity={config.earth.material.emissiveIntensity}
+                    specular={config.earth.material.specularColor}
                 />
             </Sphere>
             
             {/* Clouds / Atmosphere Layer */}
-            <Sphere ref={earthWireframeRef} args={[1.67, 64, 64]} position={[0, 0, 0]}>
+            <Sphere ref={earthWireframeRef} args={[config.clouds.radius, config.earth.widthSegments, config.earth.heightSegments]} position={[0, 0, 0]}>
                 <meshPhongMaterial 
                     map={cloudsMap}
                     transparent={true}
-                    opacity={0.85}
-                    blending={THREE.AdditiveBlending}
+                    opacity={config.clouds.opacity}
+                    blending={THREE[config.clouds.blending] || THREE.AdditiveBlending}
                     side={THREE.DoubleSide}
-                    depthWrite={false} // Prevent z-fighting
+                    depthWrite={false}
                 />
             </Sphere>
 
             {/* Cloud Shadowing Layer */}
-            <Sphere ref={earthShadowRef} args={[1.675, 64, 64]} position={[0, 0, 0]}>
+            <Sphere ref={earthShadowRef} args={[config.cloudShadows.radius, config.earth.widthSegments, config.earth.heightSegments]} position={[0, 0, 0]}>
                 <meshPhongMaterial 
                     map={cloudsMap}
                     transparent={true}
-                    opacity={0.22}
-                    color="#0b1220"
-                    blending={THREE.MultiplyBlending}
+                    opacity={config.cloudShadows.opacity}
+                    color={config.cloudShadows.color}
+                    blending={THREE[config.cloudShadows.blending] || THREE.MultiplyBlending}
                     side={THREE.DoubleSide}
                     depthWrite={false}
                 />
             </Sphere>
 
             {/* Atmosphere Glow (Custom Shader) */}
-            <mesh scale={[1.8, 1.8, 1.8]}> 
-                 <sphereGeometry args={[1, 64, 64]} />
-                 <shaderMaterial args={[AtmosphereShaderMaterial]} side={THREE.BackSide} transparent depthWrite={false} />
+            <mesh scale={[config.atmosphere.scale, config.atmosphere.scale, config.atmosphere.scale]}> 
+                 <sphereGeometry args={[1, config.earth.widthSegments, config.earth.heightSegments]} />
+                 <shaderMaterial args={[atmosphereShader]} side={THREE.BackSide} transparent depthWrite={false} />
             </mesh>
 
             {/* Subtle particle glow shell */}
             <points ref={particleRef}>
-              <sphereGeometry args={[1.92, 32, 32]} />
+              <sphereGeometry args={[config.particles.radius, Math.sqrt(config.particles.count), Math.sqrt(config.particles.count)]} />
               <pointsMaterial
-                size={0.012}
-                color="#7dd3fc"
+                size={config.particles.size}
+                color={config.particles.color}
                 transparent
-                opacity={0.25}
+                opacity={config.particles.opacity}
                 depthWrite={false}
                 blending={THREE.AdditiveBlending}
               />
             </points>
 
             {/* Terminator shading (day/night transition) */}
-            <mesh ref={terminatorRef} scale={[1.705, 1.705, 1.705]}>
-              <sphereGeometry args={[1, 64, 64]} />
-              <shaderMaterial args={[TerminatorShaderMaterial]} />
+            <mesh ref={terminatorRef} scale={[config.terminator.scale, config.terminator.scale, config.terminator.scale]}>
+              <sphereGeometry args={[1, config.earth.widthSegments, config.earth.heightSegments]} />
+              <shaderMaterial args={[terminatorShader]} />
             </mesh>
 
             {/* Explosion flash light reflection */}
             <pointLight ref={flashLightRef} color="#ffe7b3" intensity={0} distance={6} decay={2} />
 
             {/* Aurora Bands */}
-            <mesh ref={auroraRef} rotation={[Math.PI / 2, 0, 0]}>
-              <torusGeometry args={[1.78, 0.03, 8, 128]} />
-              <meshBasicMaterial color="#22d3ee" transparent opacity={0.12} blending={THREE.AdditiveBlending} />
-            </mesh>
-            <mesh ref={auroraRef2} rotation={[Math.PI / 2.2, 0, 0]}>
-              <torusGeometry args={[1.74, 0.02, 8, 128]} />
-              <meshBasicMaterial color="#a855f7" transparent opacity={0.08} blending={THREE.AdditiveBlending} />
-            </mesh>
+            {config.aurora.enabled && config.aurora.bands.map((band, index) => {
+              const ref = index === 0 ? auroraRef : auroraRef2;
+              return (
+                <mesh key={index} ref={ref} rotation={band.tilt}>
+                  <torusGeometry args={[band.radius, band.thickness, 8, 128]} />
+                  <meshBasicMaterial 
+                    color={band.color} 
+                    transparent 
+                    opacity={band.opacity.base} 
+                    blending={THREE.AdditiveBlending} 
+                  />
+                </mesh>
+              );
+            })}
         </group>
       </Float>
 
       {/* --- Moon --- */}
-      <group ref={moonGroupRef} rotation={[0.5, 0, 0]}>
-         <group position={[3.5, 0, 0]}>
-            <Sphere ref={moonRef} args={[0.4, 32, 32]}>
-                <meshStandardMaterial map={moonColorMap} roughness={0.8} />
-            </Sphere>
-         </group>
-      </group>
+      {config.moon.enabled && (
+        <group ref={moonGroupRef} rotation={config.moon.tilt}>
+           <group position={[config.moon.distance, 0, 0]}>
+              <Sphere ref={moonRef} args={[config.moon.radius, 32, 32]}>
+                  <meshStandardMaterial 
+                    map={moonColorMap} 
+                    roughness={config.moon.material.roughness}
+                    metalness={config.moon.material.metalness}
+                  />
+              </Sphere>
+           </group>
+        </group>
+      )}
 
       {/* --- Tech Stack Orbit Ring --- */}
       <group ref={techRingRef} rotation={[Math.PI / 3, 0, 0]}>
@@ -973,6 +1015,7 @@ const TechAnimation3D = () => {
                   cinematic={cinematic}
                   destructing={destructing}
                   blackout={blackoutLevel > 0.4}
+                  config={earthConfig}
                />
             </React.Suspense>
             
