@@ -9,6 +9,7 @@ const Contact3D = React.lazy(() => import('./Contact3D'));
 const Contact = () => {
   const [formState, setFormState] = useState('idle'); // idle, submitting, success
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [errorMessage, setErrorMessage] = useState('');
   const prefersReducedMotion = useReducedMotion();
 
   const triggerConfetti = () => {
@@ -44,15 +45,19 @@ const Contact = () => {
     
     // Validation
     if (!formData.name || formData.name.length < 2) {
+      setErrorMessage('Please enter your name (at least 2 characters).');
       return;
     }
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setErrorMessage('Please enter a valid email address.');
       return;
     }
     if (!formData.message || formData.message.length < 10) {
+      setErrorMessage('Your message should be at least 10 characters long.');
       return;
     }
     
+    setErrorMessage('');
     setFormState('submitting');
     try {
       const endpoint =
@@ -90,6 +95,7 @@ const Contact = () => {
       trackContactSubmit(true);
     } catch (err) {
       setFormState('idle');
+      setErrorMessage('Something went wrong while sending your message. Please try again in a moment or email me directly at contact@sahanpramuditha.com.');
       trackContactSubmit(false);
     }
   };
@@ -114,7 +120,7 @@ const Contact = () => {
           </p>
           {/* Resume Download Link */}
           <motion.a
-            href="/resume.pdf"
+            href="/Sahan%20Pramuditha%20Resume.pdf"
             target="_blank"
             rel="noopener noreferrer"
             download
@@ -167,6 +173,17 @@ const Contact = () => {
                   aria-busy={formState === 'submitting'}
                   className="space-y-6"
                 >
+                  {errorMessage && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      className="text-xs md:text-sm text-red-400 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-2 font-mono"
+                      role="alert"
+                    >
+                      {errorMessage}
+                    </motion.div>
+                  )}
                   <div className="relative group">
                     <motion.input
                       variants={inputVariants}

@@ -9,14 +9,14 @@ const SmoothScroll = () => {
     if (prefersReducedMotion || isCoarsePointer) return;
 
     const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      duration: 1.1,
+      easing: (t) => 1 - Math.pow(1 - t, 3), // smoother, more natural cubic ease-out
       direction: 'vertical',
       gestureDirection: 'vertical',
       smooth: true,
-      mouseMultiplier: 1,
-      smoothTouch: false,
-      touchMultiplier: 2,
+      mouseMultiplier: 0.9,
+      smoothTouch: true,
+      touchMultiplier: 1.5,
     });
 
     let rafId;

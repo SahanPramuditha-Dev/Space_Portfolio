@@ -1,9 +1,3 @@
 User-agent: *
 Allow: /
-
-# Sitemap
 Sitemap: https://sahanpramuditha.com/sitemap.xml
-
-# Disallow admin or private areas if any
-# Disallow: /admin/
-# Disallow: /private/

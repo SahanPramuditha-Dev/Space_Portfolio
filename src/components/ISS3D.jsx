@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Float, Environment, Sparkles, useGLTF } from '@react-three/drei';
+import * as THREE from 'three';
 
 /**
  * International Space Station 3D Model
@@ -52,7 +53,7 @@ const ISSModel = ({ modelPath }) => {
 };
 
 // Main ISS3D Component (local model only)
-const ISS3D = ({ modelPath = DEFAULT_MODEL_PATH }) => {
+const ISS3D = ({ modelPath = DEFAULT_MODEL_PATH, highlightCategory }) => {
 
   return (
     <group>
@@ -68,7 +69,22 @@ const ISS3D = ({ modelPath = DEFAULT_MODEL_PATH }) => {
       </mesh>
 
       {/* Orbital sparkles/debris */}
-      <Sparkles count={60} scale={12} size={2} speed={0.35} opacity={0.45} color="#60a5fa" />
+      <Sparkles
+        count={60}
+        scale={12}
+        size={2}
+        speed={0.35}
+        opacity={0.45}
+        color={
+          highlightCategory === 'Languages'
+            ? '#f97316'
+            : highlightCategory === 'Frameworks'
+            ? '#22c55e'
+            : highlightCategory === 'Tools & Backend'
+            ? '#38bdf8'
+            : '#60a5fa'
+        }
+      />
     </group>
   );
 };

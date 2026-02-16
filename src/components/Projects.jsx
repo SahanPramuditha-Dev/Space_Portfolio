@@ -7,6 +7,8 @@ import { trackProjectView } from '../utils/analytics';
 
 const projects = [
   {
+    missionCode: 'MIS-01',
+    year: 2024,
     title: 'E-Commerce Platform',
     description: 'A full-stack e-commerce platform built with Next.js, Stripe, and Sanity CMS. Features real-time inventory management, secure payments, and a custom admin dashboard.',
     tech: ['Next.js', 'Stripe', 'Sanity CMS', 'Tailwind'],
@@ -22,6 +24,8 @@ const projects = [
     outcomes: 'Achieved a 99.9% uptime during launch week and improved page load speeds by 40% compared to the previous solution.'
   },
   {
+    missionCode: 'MIS-02',
+    year: 2023,
     title: 'Data Visualization Dashboard',
     description: 'An interactive analytics dashboard for visualizing complex datasets using React and D3.js. Enables users to filter, sort, and export data in real-time.',
     tech: ['React', 'D3.js', 'Firebase', 'Material UI'],
@@ -37,6 +41,8 @@ const projects = [
     outcomes: 'Reduced data analysis time from hours to minutes for the core user base.'
   },
   {
+    missionCode: 'MIS-03',
+    year: 2023,
     title: 'AI Content Generator',
     description: 'A SaaS application that uses OpenAI API to help marketers generate blog posts and social media captions. Includes a rich text editor and SEO optimization tools.',
     tech: ['React', 'Node.js', 'OpenAI API', 'MongoDB'],
@@ -98,10 +104,20 @@ const ProjectCard = ({ project, index, onOpenModal }) => {
               )}
               
               <div className="relative z-10">
-                <div className="flex justify-between items-center mb-6">
-                  <Folder size={40} className="text-accent" />
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-3">
+                    <Folder size={40} className="text-accent" />
+                    {project.missionCode && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-accent/40 bg-accent/10 text-[0.7rem] font-mono uppercase tracking-[0.14em] text-accent">
+                        {project.missionCode}
+                        {project.year && (
+                          <span className="text-xs text-text-muted/80 ml-1">{project.year}</span>
+                        )}
+                      </span>
+                    )}
+                  </div>
                   {project.category && (
-                    <span className="px-2 py-1 bg-accent/20 text-accent text-xs font-mono rounded border border-accent/30">
+                    <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-mono rounded border border-accent/30">
                       {project.category}
                     </span>
                   )}
@@ -112,7 +128,7 @@ const ProjectCard = ({ project, index, onOpenModal }) => {
                 </p>
               </div>
               <div className="text-accent flex items-center gap-2 text-sm font-mono relative z-10">
-                Click for details <ArrowRight size={16} />
+                Mission Briefing <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>

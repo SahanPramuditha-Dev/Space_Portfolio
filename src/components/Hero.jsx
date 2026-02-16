@@ -55,6 +55,7 @@ const Hero = () => {
   const prefersReducedMotion = useReducedMotion();
   const [resumeAvailable, setResumeAvailable] = useState(false);
   const [resumeUrl, setResumeUrl] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -104,20 +105,57 @@ const Hero = () => {
       return;
     }
     let cancelled = false;
-    fetch('/resume.pdf', { method: 'HEAD' })
-      .then((res) => {
-        if (!cancelled && res.ok) {
-          setResumeUrl('/resume.pdf');
-          setResumeAvailable(true);
+    const candidates = [
+      '/Sahan%20Pramuditha%20Resume.pdf',
+      '/resume.pdf',
+      '/Sahan_Pramuditha_CV.docx',
+      '/Sahan_Pramuditha_CV.pdf',
+      '/cv.pdf',
+      '/CV.pdf'
+    ];
+    (async () => {
+      for (const path of candidates) {
+        try {
+          const res = await fetch(path, { method: 'HEAD' });
+          if (!cancelled && res.ok) {
+            setResumeUrl(path);
+            setResumeAvailable(true);
+            break;
+          }
+        } catch {
+          /* ignore */
         }
-      })
-      .catch(() => {
-        // ignore
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const handleResumeDownload = async (e) => {
+    e.preventDefault();
+    if (!resumeUrl || downloading) return;
+    try {
+      setDownloading(true);
+      const res = await fetch(resumeUrl);
+      if (!res.ok) {
+        setDownloading(false);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (resumeUrl.split('/').pop()) || 'Sahan_Pramuditha_CV';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setDownloading(false);
+    } catch {
+      setDownloading(false);
+    }
+  };
 
   return (
     <section ref={compRef} id="home" className="min-h-screen flex items-center justify-center relative z-10 overflow-hidden pt-24 md:pt-0">
@@ -229,15 +267,16 @@ const Hero = () => {
             {resumeAvailable && (
               <motion.a
                 href={resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackDownload('resume')}
+                onClick={(e) => {
+                  trackDownload('resume');
+                  handleResumeDownload(e);
+                }}
                 className="px-8 py-4 bg-accent text-primary font-bold rounded hover:bg-accent/90 transition-colors inline-flex items-center gap-2 font-mono"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <FileText size={20} />
-                Resume
+                {downloading ? 'Downloading…' : (resumeUrl && resumeUrl.toLowerCase().endsWith('.docx') ? 'CV (DOCX)' : 'Resume')}
               </motion.a>
             )}
           </motion.div>

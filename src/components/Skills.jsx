@@ -42,9 +42,12 @@ const skillCategories = [
 const Skills = () => {
   const sectionRef = useRef(null);
   const containerRef = useRef(null);
+  const controlsRef = useRef(null);
   const [zoomEnabled, setZoomEnabled] = useState(false);
   const [threeEnabled, setThreeEnabled] = useState(true);
- 
+  const [highlightCategory, setHighlightCategory] = useState(null);
+  const [issInfo, setIssInfo] = useState(null);
+  const [issError, setIssError] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -80,7 +83,36 @@ const Skills = () => {
     };
   }, [threeEnabled]);
 
- 
+  // Live ISS location (for realism)
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchISS = () => {
+      fetch('https://api.wheretheiss.at/v1/satellites/25544')
+        .then((res) => (res.ok ? res.json() : Promise.reject()))
+        .then((data) => {
+          if (cancelled) return;
+          setIssInfo({
+            latitude: data.latitude,
+            longitude: data.longitude,
+            altitude: data.altitude, // km
+            velocity: data.velocity, // km/h
+          });
+          setIssError(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setIssError(true);
+        });
+    };
+
+    fetchISS();
+    const id = setInterval(fetchISS, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -106,12 +138,22 @@ const Skills = () => {
           <span className="text-accent font-mono text-xl mr-2">02.</span> Skills & Technologies
           <span className="h-px bg-secondary flex-grow ml-4 opacity-50"></span>
         </h2>
+        <p className="text-text-muted text-sm md:text-base mb-10 max-w-2xl">
+          This section maps my core skills onto a mission-style visualization. Each module in the interface
+          represents a capability — from frontend systems to backend services — all working together like an
+          orbiting station.
+        </p>
 
         <div className="flex flex-col lg:flex-row gap-16 items-start skills-wrapper">
           {/* Left Column: Categorized Skills */}
           <div className="w-full lg:w-3/5 space-y-12">
             {skillCategories.map((category, idx) => (
-              <div key={idx} className="skill-category">
+              <div
+                key={idx}
+                className="skill-category"
+                onMouseEnter={() => setHighlightCategory(category.title)}
+                onMouseLeave={() => setHighlightCategory(null)}
+              >
                 <h3 className="text-xl font-bold text-accent mb-6 flex items-center gap-2">
                   <span className="w-2 h-2 bg-accent rounded-full"></span>
                   {category.title}
@@ -152,6 +194,30 @@ const Skills = () => {
                {/* Decorative background gradient */}
                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
 
+               {/* Live ISS telemetry HUD */}
+               {issInfo && (
+                 <div className="absolute top-4 left-4 bg-slate-950/80 border border-accent/30 rounded-lg px-3 py-2 text-[0.65rem] md:text-xs text-slate-200/90 font-mono backdrop-blur-md shadow-lg">
+                   <div className="flex items-center justify-between gap-4 mb-1">
+                     <span className="tracking-[0.18em] uppercase text-slate-400 text-[0.55rem] md:text-[0.6rem]">
+                       Live ISS Telemetry
+                     </span>
+                     {issError && (
+                       <span className="text-red-400 text-[0.55rem] uppercase">
+                         Offline
+                       </span>
+                     )}
+                   </div>
+                   <div className="flex flex-col gap-0.5 text-[0.7rem] md:text-[0.75rem]">
+                     <span>
+                       Lat {issInfo.latitude.toFixed(1)}° · Lon {issInfo.longitude.toFixed(1)}°
+                     </span>
+                     <span>
+                       Alt {issInfo.altitude.toFixed(0)} km · Vel {Math.round(issInfo.velocity)} km/h
+                     </span>
+                   </div>
+                 </div>
+               )}
+
                {threeEnabled ? (
                  <Canvas
                    shadows
@@ -179,11 +245,19 @@ const Skills = () => {
                        </mesh>
                      }
                    >
-                     <ISS3D />
-                     <Sparkles count={50} scale={10} size={2} speed={0.3} opacity={0.4} color="#60a5fa" />
+                     <ISS3D highlightCategory={highlightCategory} />
+                     <Sparkles
+                       count={50}
+                       scale={10}
+                       size={2}
+                       speed={0.3}
+                       opacity={0.4}
+                       color="#60a5fa"
+                     />
                    </Suspense>
 
                    <OrbitControls
+                     ref={controlsRef}
                      enableZoom={zoomEnabled}
                      autoRotate={!zoomEnabled}
                      autoRotateSpeed={0.5}
@@ -202,6 +276,11 @@ const Skills = () => {
                <div className="absolute bottom-4 right-4 text-xs text-text-muted font-mono pointer-events-none bg-secondary/80 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
                  International Space Station (Local)
                </div>
+               {threeEnabled && (
+                 <div className="absolute bottom-4 left-4 text-[0.65rem] md:text-xs text-text-muted/80 font-mono bg-secondary/80 px-2 py-1 rounded backdrop-blur-sm border border-white/10">
+                   Rotate: drag · Zoom: scroll
+                 </div>
+               )}
              </div>
           </div>
         </div>
