@@ -95,8 +95,7 @@ const About = () => {
                   src={profilePhoto}
                   alt="Sahan Pramuditha"
                   className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
+                  loading="eager"
                 />
               </div>
             </div>

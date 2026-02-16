@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, Github, Linkedin, Mail, FileText } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import gsap from 'gsap';
 import { trackSocialClick, trackDownload } from '../utils/analytics';
-const TechAnimation3D = React.lazy(() => import('./TechAnimation3D'));
+import TechAnimation3D from './TechAnimation3D';
 
 const TypewriterText = ({ words }) => {
   const [index, setIndex] = useState(0);
@@ -208,9 +208,7 @@ const Hero = () => {
             variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }}
           >
             <p className="text-text-muted text-lg max-w-xl leading-relaxed">
-              I am Sahan Pramuditha, a SBIC student specializing in building (and occasionally designing)
-              exceptional digital experiences. Currently, I am focused on building accessible,
-              human-centered products.
+              I'm a SBIC student specializing in building (and occasionally designing) exceptional digital experiences. Currently, I'm focused on building accessible, human-centered products.
             </p>
           </motion.div>
           
@@ -264,7 +262,7 @@ const Hero = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              View Sahan Pramuditha Projects
+              Check out my work!
             </motion.a>
             {resumeAvailable && (
               <motion.a
@@ -278,7 +276,7 @@ const Hero = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <FileText size={20} />
-                {downloading ? 'Downloading...' : (resumeUrl && resumeUrl.toLowerCase().endsWith('.docx') ? 'CV (DOCX)' : 'Resume')}
+                {downloading ? 'Downloading…' : (resumeUrl && resumeUrl.toLowerCase().endsWith('.docx') ? 'CV (DOCX)' : 'Resume')}
               </motion.a>
             )}
           </motion.div>
@@ -291,9 +289,7 @@ const Hero = () => {
           whileInView={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1, delay: 0.5 }}
         >
-           <Suspense fallback={<div className="w-full h-full rounded-2xl bg-gradient-to-br from-accent/20 via-secondary to-primary" />}>
-             <TechAnimation3D />
-           </Suspense>
+           <TechAnimation3D />
         </motion.div>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sparkles } from '@react-three/drei';
 import gsap from 'gsap';
@@ -38,24 +38,6 @@ const skillCategories = [
     ]
   }
 ];
-
-const ISSLoadingFallback = () => (
-  <group>
-    <mesh castShadow>
-      <boxGeometry args={[1, 0.35, 0.35]} />
-      <meshStandardMaterial color="#94a3b8" metalness={0.6} roughness={0.4} />
-    </mesh>
-    <mesh position={[1, 0, 0]} castShadow>
-      <boxGeometry args={[1.4, 0.12, 0.04]} />
-      <meshStandardMaterial color="#38bdf8" emissive="#1d4ed8" emissiveIntensity={0.4} />
-    </mesh>
-    <mesh position={[-1, 0, 0]} castShadow>
-      <boxGeometry args={[1.4, 0.12, 0.04]} />
-      <meshStandardMaterial color="#38bdf8" emissive="#1d4ed8" emissiveIntensity={0.4} />
-    </mesh>
-    <Sparkles count={24} scale={4} size={1.8} speed={0.45} opacity={0.5} color="#93c5fd" />
-  </group>
-);
 
 const Skills = () => {
   const sectionRef = useRef(null);
@@ -255,19 +237,15 @@ const Skills = () => {
                    <pointLight position={[-6, 2, -4]} intensity={0.6} color="#93c5fd" />
                    <pointLight position={[6, 3, 4]} intensity={0.8} />
 
-                   <Suspense
-                     fallback={<ISSLoadingFallback />}
-                   >
-                     <ISS3D highlightCategory={highlightCategory} />
-                     <Sparkles
-                       count={50}
-                       scale={10}
-                       size={2}
-                       speed={0.3}
-                       opacity={0.4}
-                       color="#60a5fa"
-                     />
-                   </Suspense>
+                  <ISS3D highlightCategory={highlightCategory} />
+                  <Sparkles
+                    count={50}
+                    scale={10}
+                    size={2}
+                    speed={0.3}
+                    opacity={0.4}
+                    color="#60a5fa"
+                  />
 
                    <OrbitControls
                      ref={controlsRef}
