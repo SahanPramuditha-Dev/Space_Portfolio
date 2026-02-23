@@ -22,18 +22,12 @@ import ScrollProgress from './components/ScrollProgress';
 import ScrollToTop from './components/ScrollToTop';
 import SmoothScroll from './components/SmoothScroll';
 import { Analytics } from '@vercel/analytics/react';
-
-const BOT_USER_AGENT_PATTERN =
-  /bot|crawler|spider|googlebot|bingbot|duckduckbot|baiduspider|yandex/i;
-
-const shouldSkipPreloader = () => {
-  if (typeof navigator === 'undefined') return false;
-  return BOT_USER_AGENT_PATTERN.test(navigator.userAgent || '');
-};
+import { isBotUserAgent, shouldDisableHeavyVisuals } from './utils/runtimeGuards';
 
 // Ensure React is not duplicated and hooks are used correctly
 function App() {
-  const [loading, setLoading] = useState(() => !shouldSkipPreloader());
+  const [loading, setLoading] = useState(() => !isBotUserAgent());
+  const [heavyVisualsEnabled, setHeavyVisualsEnabled] = useState(() => !shouldDisableHeavyVisuals());
 
   useEffect(() => {
     let animationFrameId;
@@ -61,6 +55,20 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      setHeavyVisualsEnabled(!shouldDisableHeavyVisuals());
+    };
+
+    update();
+    reduceMotionQuery.addEventListener('change', update);
+    return () => {
+      reduceMotionQuery.removeEventListener('change', update);
+    };
+  }, []);
+
   return (
     <>
       <SEO />
@@ -76,10 +84,12 @@ function App() {
 
       {!loading && (
         <div className="bg-primary min-h-screen text-text-muted selection:bg-accent selection:text-primary transition-colors duration-300">
-          <CustomCursor />
-          <Suspense fallback={null}>
-            <ThreeBackground />
-          </Suspense>
+          {heavyVisualsEnabled && <CustomCursor />}
+          {heavyVisualsEnabled && (
+            <Suspense fallback={null}>
+              <ThreeBackground />
+            </Suspense>
+          )}
           
           <div className="relative z-10">
             <Navbar />

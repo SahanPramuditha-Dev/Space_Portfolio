@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import gsap from 'gsap';
 import { trackSocialClick, trackDownload } from '../utils/analytics';
 import TechAnimation3D from './TechAnimation3D';
+import { shouldDisableHeavyVisuals } from '../utils/runtimeGuards';
 
 const DEFAULT_RESUME_URL = '/resume.pdf';
 
@@ -58,6 +59,7 @@ const Hero = () => {
   const resumeUrl = (import.meta.env.VITE_RESUME_URL || '').trim() || DEFAULT_RESUME_URL;
   const resumeAvailable = Boolean(resumeUrl);
   const [downloading, setDownloading] = useState(false);
+  const [heavyVisualsEnabled, setHeavyVisualsEnabled] = useState(() => !shouldDisableHeavyVisuals());
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -77,6 +79,20 @@ const Hero = () => {
 
     return () => ctx.revert();
   }, [prefersReducedMotion]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      setHeavyVisualsEnabled(!shouldDisableHeavyVisuals());
+    };
+
+    update();
+    reduceMotionQuery.addEventListener('change', update);
+    return () => {
+      reduceMotionQuery.removeEventListener('change', update);
+    };
+  }, []);
 
   const handleResumeDownload = async (e) => {
     e.preventDefault();
@@ -235,7 +251,14 @@ const Hero = () => {
           whileInView={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1, delay: 0.5 }}
         >
-           <TechAnimation3D />
+          {heavyVisualsEnabled ? (
+            <TechAnimation3D />
+          ) : (
+            <div
+              className="w-full h-full rounded-2xl bg-gradient-to-br from-accent/20 via-secondary/20 to-primary/20"
+              aria-hidden="true"
+            />
+          )}
         </motion.div>
       </div>
 

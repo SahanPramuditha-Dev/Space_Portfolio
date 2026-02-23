@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sphere, MeshDistortMaterial, OrbitControls, Stars } from '@react-three/drei';
 import { useTheme } from '../context/ThemeContext';
+import { shouldDisableHeavyVisuals } from '../utils/runtimeGuards';
 
 const PaperPlane = ({ theme }) => {
   const ref = useRef();
@@ -80,10 +81,7 @@ const Contact3D = () => {
     if (typeof window === 'undefined') return;
     const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
-      const prefersReducedMotion = reduceMotionQuery.matches;
-      const saveData = navigator.connection?.saveData;
-      const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
-      setEnabled(!prefersReducedMotion && !saveData && !lowMemory);
+      setEnabled(!shouldDisableHeavyVisuals());
     };
     update();
     reduceMotionQuery.addEventListener('change', update);

@@ -4,6 +4,7 @@ import { Float, Sphere, Stars, Trail, OrbitControls, Icosahedron } from '@react-
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { getPerformanceConfig, earthConfig } from '../config/earthConfig';
+import { shouldDisableHeavyVisuals } from '../utils/runtimeGuards';
 
 const AtmosphereShaderMaterial = {
   uniforms: {
@@ -866,6 +867,7 @@ const CameraRig = ({ controlsRef, focused, cinematic, destructing, trackLat = 7.
 
 const TechAnimation3D = () => {
   const containerRef = useRef(null);
+  const [enabled, setEnabled] = useState(() => !shouldDisableHeavyVisuals());
   const [zoomEnabled, setZoomEnabled] = useState(false);
   const [explode, setExplode] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -876,6 +878,21 @@ const TechAnimation3D = () => {
   const [blackoutLevel, setBlackoutLevel] = useState(0);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      setEnabled(!shouldDisableHeavyVisuals());
+    };
+
+    update();
+    reduceMotionQuery.addEventListener('change', update);
+    return () => {
+      reduceMotionQuery.removeEventListener('change', update);
+    };
+  }, []);
+
+  useEffect(() => {
+      if (!enabled) return undefined;
       const handleFocus = () => {
           setFocused(true);
           // Scroll to top/hero section smoothly
@@ -918,7 +935,7 @@ const TechAnimation3D = () => {
       window.addEventListener('tracking-cinematic', handleCinematic);
       window.addEventListener('satellite-destruct', handleDestruct);
       const handleBlackoutOn = () => {
-        gsap.to({ t: blackoutLevel }, {
+        gsap.to({ t: 0 }, {
           t: 1,
           duration: 1.0,
           ease: 'power2.out',
@@ -926,7 +943,7 @@ const TechAnimation3D = () => {
         });
       };
       const handleBlackoutOff = () => {
-        gsap.to({ t: blackoutLevel }, {
+        gsap.to({ t: 1 }, {
           t: 0,
           duration: 1.2,
           ease: 'power2.out',
@@ -943,9 +960,10 @@ const TechAnimation3D = () => {
           window.removeEventListener('blackout-on', handleBlackoutOn);
           window.removeEventListener('blackout-off', handleBlackoutOff);
       };
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     const container = containerRef.current;
     if (!container) return;
 // ... existing wheel listener code ...
@@ -961,7 +979,16 @@ const TechAnimation3D = () => {
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, [zoomEnabled]);
+  }, [zoomEnabled, enabled]);
+
+  if (!enabled) {
+    return (
+      <div
+        className="w-full h-full rounded-2xl bg-gradient-to-br from-accent/20 via-secondary/20 to-primary/20"
+        aria-hidden="true"
+      />
+    );
+  }
 
   const controlsRef = useRef();
   const mainLightRef = useRef();

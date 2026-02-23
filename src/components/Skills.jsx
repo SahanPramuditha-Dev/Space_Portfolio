@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SectionWrapper from './SectionWrapper';
 import TiltCard from './TiltCard';
 import ISS3D from './ISS3D';
+import { shouldDisableHeavyVisuals } from '../utils/runtimeGuards';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -62,10 +63,7 @@ const Skills = () => {
     if (typeof window === 'undefined') return;
     const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
-      const prefersReducedMotion = reduceMotionQuery.matches;
-      const saveData = navigator.connection?.saveData;
-      const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
-      setThreeEnabled(!prefersReducedMotion && !saveData && !lowMemory);
+      setThreeEnabled(!shouldDisableHeavyVisuals());
     };
     update();
     reduceMotionQuery.addEventListener('change', update);

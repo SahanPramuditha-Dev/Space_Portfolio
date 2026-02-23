@@ -5,6 +5,7 @@ import * as random from 'maath/random/dist/maath-random.esm';
 import { useTheme } from '../context/ThemeContext';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { shouldDisableHeavyVisuals } from '../utils/runtimeGuards';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -103,10 +104,7 @@ const ThreeBackground = () => {
     if (typeof window === 'undefined') return;
     const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
-      const prefersReducedMotion = reduceMotionQuery.matches;
-      const saveData = navigator.connection?.saveData;
-      const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
-      setEnabled(!prefersReducedMotion && !saveData && !lowMemory);
+      setEnabled(!shouldDisableHeavyVisuals());
     };
 
     update();
