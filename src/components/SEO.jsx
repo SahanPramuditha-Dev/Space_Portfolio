@@ -37,10 +37,13 @@ const SEO = () => {
       'Sahan Pramuditha is a software engineer and creative developer building accessible, high-performance digital experiences.';
     const ogImage = `${siteUrl}/favicon.svg`;
     const twitterHandle = '@sahanpramuditha';
+    const keywords =
+      'Sahan Pramuditha, software engineer, creative developer, web developer, React developer, portfolio, Three.js';
 
     document.title = title;
 
     upsertMetaTag('meta[name="description"]', { name: 'description', content: description });
+    upsertMetaTag('meta[name="keywords"]', { name: 'keywords', content: keywords });
     upsertMetaTag('meta[name="author"]', { name: 'author', content: 'Sahan Pramuditha' });
     upsertMetaTag('meta[name="application-name"]', { name: 'application-name', content: 'Sahan Pramuditha' });
     upsertMetaTag('meta[name="creator"]', { name: 'creator', content: 'Sahan Pramuditha' });
@@ -50,6 +53,7 @@ const SEO = () => {
     upsertLinkTag('link[rel="canonical"]', { rel: 'canonical', href: canonicalUrl });
 
     upsertMetaTag('meta[property="og:type"]', { property: 'og:type', content: 'website' });
+    upsertMetaTag('meta[property="og:locale"]', { property: 'og:locale', content: 'en_US' });
     upsertMetaTag('meta[property="og:url"]', { property: 'og:url', content: canonicalUrl });
     upsertMetaTag('meta[property="og:title"]', { property: 'og:title', content: title });
     upsertMetaTag('meta[property="og:description"]', { property: 'og:description', content: description });
